@@ -49,6 +49,9 @@ var jsonCssVisitFn = function(nodeObj, log){
     selectorIds.push(nodeObj.nodeId);
     var selector = selectorIds.join(' ');
 
+    // ' &' should be replaced with '' to do concatenation.
+    selector = selector.replace(' &', '');
+
     // Get style attributes.
     var styleAttrs = {};
     var hasStyles = false;

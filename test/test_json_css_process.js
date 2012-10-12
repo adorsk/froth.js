@@ -43,5 +43,25 @@ selector1 selector2 {
         var result = jsonCssProcessor.process(jsonCss);
         result.should.eql(expectedResult);
     });
+
+    describe('#concatenation', function(){
+        var expectedResult = util.heredoc(function(){
+/*
+selector1.selector2 {
+  color: blue
+}*/ 
+        }) + "\n";
+        var jsonCss = {
+            rules: {
+                'selector1': {
+                    '&.selector2': {
+                        'color': 'blue'
+                    }
+                }
+            }
+        };
+        var result = jsonCssProcessor.process(jsonCss);
+        result.should.eql(expectedResult);
+    });
 });
 
