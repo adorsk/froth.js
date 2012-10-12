@@ -29,7 +29,8 @@ selector {
 /*
 selector1 selector2 {
   color: blue
-}*/ 
+}
+*/ 
         }) + "\n";
         var jsonCss = {
             rules: {
@@ -44,12 +45,14 @@ selector1 selector2 {
         result.should.eql(expectedResult);
     });
 
+
     describe('#concatenation', function(){
         var expectedResult = util.heredoc(function(){
 /*
 selector1.selector2 {
   color: blue
-}*/ 
+}
+*/ 
         }) + "\n";
         var jsonCss = {
             rules: {
@@ -59,6 +62,21 @@ selector1.selector2 {
                     }
                 }
             }
+        };
+        var result = jsonCssProcessor.process(jsonCss);
+        result.should.eql(expectedResult);
+    });
+
+
+    describe('#import', function(){
+        var expectedResult = util.heredoc(function(){
+/*
+@import url('foo');
+@import url('bar');
+*/ 
+        }) + "\n";
+        var jsonCss = {
+            imports : ['foo', 'bar']
         };
         var result = jsonCssProcessor.process(jsonCss);
         result.should.eql(expectedResult);

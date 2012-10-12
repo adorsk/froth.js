@@ -72,6 +72,7 @@ var jsonCssVisitFn = function(nodeObj, log){
 
 };
 
+// Format a single css rule.
 var formatCssRule = function(selector, styleAttrs, opts){
     opts = opts || {};
     opts.indent = opts.indent || '  ';
@@ -86,13 +87,25 @@ var formatCssRule = function(selector, styleAttrs, opts){
     return cssStr;
 };
 
+// Format a css import.
+var formatCssImport = function(import_, opts){
+    opts = opts || {};
+    opts.linebreak = opts.linebreak || '\n';
+    return "@import url('"  + import_ + "');" + opts.linebreak;
+};
+
 // Convert a JSONCSS into a CSS string, using non-recursive traversal.
 exports.process = function(jsonCss){
     // Initialize CSS String.
     var cssStr = '';
 
     // Handle imports.
-    // @TODO
+    if (jsonCss.imports){
+        for (var i in jsonCss.imports){
+            var import_ = jsonCss.imports[i];
+            cssStr += formatCssImport(import_);
+        }
+    }
     
     // Handle rules (if any).
     if (jsonCss.rules){
