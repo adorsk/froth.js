@@ -3,21 +3,43 @@ var util = require('../util.js');
 var jsonCssProcessor = require('../json_css_processor.js');
 
 describe('jsonCssProcessor', function(){
-    describe('#simpleRule', function(){
-        var simpleRule = {
-            'selector' : {
-                'color': 'blue'
-            }
-        };
-        var jsonCss = {rules: simpleRule};
 
+    describe.skip('#simpleRule', function(){
         var expectedResult = util.heredoc(function(){
 /*
 selector {
   color: blue
 }*/ 
         }) + "\n";
-        console.log(expectedResult);
+
+        var jsonCss = {
+            rules: {
+                'selector' : {
+                    'color': 'blue'
+                }
+            }
+        };
+        var result = jsonCssProcessor.process(jsonCss);
+        result.should.eql(expectedResult);
+    });
+
+
+    describe('#nestedRules', function(){
+        var expectedResult = util.heredoc(function(){
+/*
+selector1 selector2 {
+  color: blue
+}*/ 
+        }) + "\n";
+        var jsonCss = {
+            rules: {
+                'selector1': {
+                    'selector2': {
+                        'color': 'blue'
+                    }
+                }
+            }
+        };
         var result = jsonCssProcessor.process(jsonCss);
         result.should.eql(expectedResult);
     });

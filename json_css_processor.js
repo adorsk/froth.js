@@ -1,13 +1,14 @@
 // Non-recursive tree travesal.
 var traverse = function(tree, getChildrenFn, visitFn, log){
     log = log || {};
-    var nodeObj = {ancestors: [], nodeId: '', data: tree};
+    var nodeObj = {ancestors: [], nodeId: null, data: tree};
     var nodeObjs = getChildrenFn(nodeObj)
 
     while (nodeObjs.length){
         nodeObj = nodeObjs.shift();
         var childNodeObjs = getChildrenFn(nodeObj);
-        for (childNodeObj in childNodeObjs){
+        for (var i in childNodeObjs){
+            var childNodeObj = childNodeObjs[i];
             nodeObjs.push(childNodeObj);
         }
 
@@ -40,27 +41,32 @@ var jsonCssGetChildrenFn = function(nodeObj){
 var jsonCssVisitFn = function(nodeObj, log){
     // Get current selector by joining ancestor ids.
     var selectorIds = [];
-    for (var i in nodeObj.ancestors){
-        var ancestor = nodeObj.ancestors[i];
+    var ancestors = nodeObj.ancestors.slice(1);
+    for (var i in ancestors){
+        var ancestor = ancestors[i];
         selectorIds.push(ancestor.nodeId);
     }
     selectorIds.push(nodeObj.nodeId);
-    var selector = selectorIds.join('');
+    var selector = selectorIds.join(' ');
 
     // Get style attributes.
     var styleAttrs = {};
+    var hasStyles = false;
     for (var key in nodeObj.data){
         var val = nodeObj.data[key];
         if (typeof val != 'object'){
             styleAttrs[key] = val;
+            hasStyles = true;
         }
     }
 
-    // Format css output.
-    nodeCssStr = formatCssRule(selector, styleAttrs);
+    // If there were styles, create style rule string and
+    // add to running css string.
+    if (hasStyles){
+        nodeCssStr = formatCssRule(selector, styleAttrs);
+        log.cssStr += nodeCssStr;
+    }
 
-    // Add to ongoing cssStr.
-    log.cssStr += nodeCssStr;
 };
 
 var formatCssRule = function(selector, styleAttrs, opts){
