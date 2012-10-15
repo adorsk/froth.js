@@ -1,6 +1,5 @@
-require('coffee-script')
+require('./common')
 Decorado = require('../decorado')
-require('should')
 
 describe 'Test Decorado', ->
   describe '#compile', ->
