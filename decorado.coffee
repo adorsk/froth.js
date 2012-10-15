@@ -1,61 +1,15 @@
-// Depends on underscore.js .
+root = exports ? this
+Decorado = root.Decorado = {}
 
-(function(){
+// Styles registry.
+Decorado._styles = {'default': []};
 
-  // Initial Setup
-  // -------------
-
-  // Save a reference to the global object (`window` in the browser, `global`
-  // on the server).
-  var root = this;
-
-  // Save the previous value of the `Backbone` variable, so that it can be
-  // restored later on, if `noConflict` is used.
-  var previousDecorado = root.Decorado;
-
-  // Create a local reference to array methods.
-  var ArrayProto = Array.prototype;
-  var push = ArrayProto.push;
-  var slice = ArrayProto.slice;
-  var splice = ArrayProto.splice;
-
-  // The top-level namespace. 
-  // Exported for both CommonJS and the browser.
-  var Decorado;
-  if (typeof exports !== 'undefined') {
-    Decorado = exports;
-  } else {
-    Decorado = root.Decorado = {};
-  }
-
-  // Current version of the library. Keep in sync with `package.json`.
-  Decorado.VERSION = '0.0.1';
-
-  // Runs Decorado in *noConflict* mode, returning the `Decorado` variable
-  // to its previous owner. Returns a reference to this Decorado object.
-  Decorado.noConflict = function() {
-    root.Decorado = previousDecorado;
-    return this;
-  };
-
-  // Style registry, initialized w/ 'default' namespace.
-  Decorado._styles = {'default': []};
-
-  Decorado._getNamespace = function(ns){
-    ns = ns || 'default';
+Decorado._getNamespace -> (ns)
+    ns = ns ? 'default'
     return Decorado._styles[ns];
-  };
 
-  // Add a style to a namespace.
-  // @TODO: NEED TO HANDLE ORDERING! FOR PROPER CASCADE RESOLUTION.
-  Decorado.addStyle = function(style, ns){
-
-    // If style is a subclass of Decorado.Style, instantiate it.
-    if (Decorado.Style.prototype.isPrototypeOf(style.prototype)){
-        style = new style();
-    }
-
-    Decorado._styles[ns][style.id] = style;
+Decorado.addStyle -> (style, ns)
+  Decorado._styles[ns][style.id] = style;
 
   };
 
