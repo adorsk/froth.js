@@ -62,3 +62,19 @@ When we remove:
     return match
  
 This can work I think.
+
+Then searching becomes a matter of searching the indices.
+
+Another idea: can append new elements as CSS text, or as JSONCSS.  For flexibility.  Like jquery can do jq nodes or text.
+
+Think a bit more on searching.
+
+Can use regex searching.  Just convert css selector to regex and loop on molecules.
+e.g. ".a > .b .d" would go to this regex: "\.a > \.b .* .d"
+
+and ".a,.b" would go to "\.a|\.b".  Or, actually just split into separate searches and combine.
+
+What about compound selectors? 'e.g. '.a.b'.  No, those should be preserved in paths.  Would just need to canonicalize them (alphabetical ordering)
+
+actually, that would make searching, storage much easier.  A tree just has a simple list of paths at the index, through which we loop.
+

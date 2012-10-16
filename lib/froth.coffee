@@ -135,3 +135,106 @@ JsonCss.dumpcss = (jsonCss) ->
     cssStr += traversalLog.cssStr
 
   return cssStr
+
+###
+Misc. Helpers
+@TODO: refactor & organize.
+###
+
+# Normalizes a selector by collapsing whitespace and ordering
+# composite selectors.
+Froth.normalizeSelector = (selector) ->
+  re = /\s*([^\s\>]+|\>)\s*/g
+  tokens = []
+  while match = re.exec(selector)
+    tokens.push(match[1])
+  normalized_tokens = []
+  token_re = /((\.|\#)?[^\.\#]+)/g
+  for token in tokens
+    ids = []
+    classes = []
+    others = []
+    while match = token_re.exec(token)
+      subtoken = match[1]
+      if subtoken[0] == '#'
+        ids.push(subtoken)
+      else if subtoken[0] == '.'
+        classes.push(subtoken)
+      else
+        others.push(subtoken)
+    ordered_subtokens = others.sort().concat(ids.sort()).concat(classes.sort())
+    normalized_tokens.push(ordered_subtokens.join(''))
+  return normalized_tokens.join(' ')
+
+# Util function to non-recursively walk a tree, depth-first.
+Froth.df_walk = (tree, getChildNodesFn, visitFn, log) ->
+  log ?= {}
+  rootNode = {ancestors: [], nodeId: null, data: tree}
+  nodes = getChildNodesFn(rootNode)
+  while (nodes.length)
+    node = nodes.shift()
+    childNodes = getChildNodesFn(node)
+    for childNode in childNodes
+      nodes.push(childNode)
+
+    visitFn(node, log)
+
+  return log
+
+# Convert Froth JSON to JSON CSS.
+# Froth JSON is a superset of Froth JSONCSS, but it allows nesting and 
+# a few shorthand conveniences like '&'.
+Froth.frothJsonToJsonCss = (frothJson={}) ->
+
+  # Function to get child nodes.
+  getChildNodes = (node) ->
+    childNodes = []
+    for own k, v of node.data
+      if typeof v == 'object'
+        childNodes.push({
+          ancestors: node.ancestors.concat([node]),
+          nodeId: k,
+          data: v
+        })
+    return childNodes
+
+  # Function to convert a Froth JSON node to a Froth JSONCSS node.
+  # Will merge style attributes into any previously defined JSONCSS nodes stored
+  # log.jsoncss .
+  visitNode = (node, log) ->
+    # Get current selector by joining ancestor ids, and appending current id.
+    selectorIds = []
+    for ancestor in node.ancestors[1..]
+      selectorIds.push(ancestor.nodeId)
+    selectorIds.push(node.nodeId)
+    selector = selectorIds.join(' ')
+
+    # ' &' should be replaced with '' to do concatenation.
+    selector = selector.replace(' &', '')
+
+    selector = Froth.normalizeSelector(selector)
+
+    # Get style attributes.
+    styleAttrs = {}
+    hasStyles = false
+    for k, v of node.data
+      if (typeof v != 'object')
+        styleAttrs[k] = v
+        hasStyles = true
+
+    # If there were styles, create style rule string and
+    # add to running css string.
+    if hasStyles
+      log.jsoncss[selector] ?= {}
+      Froth.merge(log.jsoncss[selector], styleAttrs)
+
+  # Walk the given input tree , and return a JSONCSS object.
+  log = {jsoncss: {}}
+  Froth.df_walk(frothJson, getChildNodes, visitNode, log)
+  return log.jsoncss
+  
+ 
+# <grumble>. I wish this was in coffeescript core...
+Froth.merge = (dest, objs...) ->
+  for obj in objs
+    dest[k] = v for k, v of obj
