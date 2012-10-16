@@ -1,0 +1,64 @@
+make the api more like jquery's.  Because we're essentially doing the same thing: manipulating a tree.
+
+E.g. Froth.append({
+  body: {
+    width: 200,
+    &.content : {
+      width: 300
+    }
+  })
+
+etc.
+
+Now, is there any way for me to tap into jquery?  to see how it does it?
+
+
+More thoughts on the tree idea.
+
+Just a tree itself won't do it.  Need a way to make the search work.
+
+This is where a db comes in.
+
+Kind of like nodes and tags.
+
+
+The db has these tables:
+
+molecules
+ - id (e.g. '.a')
+ 
+atoms
+ - id (e.g. '.a')
+ 
+atoms_molecules
+ - atom (e.g. 'a'
+ - molecule ('.a .b.c')
+
+molecules_children
+ - parent_id ('.a')
+ - child_id ('.b.c')
+
+
+Then we have two basic operations: append and remove.
+
+When we append a subtree: 
+  for each node in subtree.walk:
+    get molecule_id by joining parent path and current id
+    split into atoms
+    add molecule to molecule table
+    update atoms with atoms
+    update atoms_molecules
+    update molecules_children
+  add subtree to the jsoncss object as a child of the parent.
+
+When we remove:
+  for each match:
+    if match is attached:
+      for each node in match.walk:
+        remove from molecule table
+        remove from atoms_molecules
+        remove from molecules_children
+      detach match
+    return match
+ 
+This can work I think.
