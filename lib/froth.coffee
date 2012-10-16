@@ -1,5 +1,42 @@
+# Initial setup.
+root = this
+oldFroth = root.Froth
+Froth = {}
+if typeof exports != 'undefined'
+  Froth = exports
+else
+  Froth = root.Froth = {}
+Froth.noConflict = ->
+  root.Froth = oldFroth
+  return this
+
+###
+Froth.Context
+###
+Froth.Context = class Context
+  styles: {}
+
+  compile: =>
+    console.log('compile')
+    compiled_css = {}
+    for styleId, style of this.styles
+      compiled_css[styleId] = Froth.JsonCss.dumpcss(style)
+    console.log("compiled_css: %j", compiled_css)
+    # TODO: clean this up! Need better detection here.
+    if window
+      for styleId, compiledStyle of compiled_css
+        styleEl = window.document.createElement("style")
+        styleEl.type = "text/css"
+        styleEl.innerHTML = compiledStyle
+        window.document.head.appendChild(styleEl)
+
+###
+Froth.JSONCSS
+###
+JsonCss = Froth.JsonCss = {}
+
 # Non-recursive tree travesal.
-traverse = (tree, getChildrenFn, visitFn, log) ->
+JsonCss.traverse = (tree, getChildrenFn, visitFn, log) ->
   log ?= {}
   nodeObj = {ancestors: [], nodeId: null, data: tree}
   nodeObjs = getChildrenFn(nodeObj)
@@ -16,7 +53,7 @@ traverse = (tree, getChildrenFn, visitFn, log) ->
 
 # Get child nodes of a JSON CSS node.
 # We assume all elements which are objects are children.
-jsoncssGetChildrenFn = (nodeObj) ->
+JsonCss.getChildren = (nodeObj) ->
   childNodeObjs = []
   for own k, v of nodeObj.data
     if (typeof v == 'object')
@@ -30,7 +67,7 @@ jsoncssGetChildrenFn = (nodeObj) ->
 # Visit a JSON CSS node.
 # Outputs a CSS string for the given node.
 # We assume all non-object elements are style attributes.
-jsoncssVisitFn = (nodeObj, log) ->
+JsonCss.visit = (nodeObj, log) ->
   # Get current selector by joining ancestor ids, and appending current id.
   selectorIds = []
   for ancestor in nodeObj.ancestors[1..]
@@ -52,11 +89,11 @@ jsoncssVisitFn = (nodeObj, log) ->
   # If there were styles, create style rule string and
   # add to running css string.
   if hasStyles
-    nodeCssStr = formatCssRule(selector, styleAttrs)
+    nodeCssStr = JsonCss.formatCssRule(selector, styleAttrs)
     log.cssStr += nodeCssStr
 
 # Format a single css rule.
-formatCssRule = (selector, styleAttrs, opts={}) ->
+JsonCss.formatCssRule = (selector, styleAttrs, opts={}) ->
   opts.indent ?= '  '
   opts.linebreak ?= '\n'
   cssStr = ""
@@ -71,33 +108,30 @@ formatCssRule = (selector, styleAttrs, opts={}) ->
   return cssStr
 
 # Format a css import.
-formatCssImport = (import_, opts={}) ->
+JsonCss.formatCssImport = (import_, opts={}) ->
   opts.linebreak = opts.linebreak || '\n'
   return "@import url('"  + import_ + "');" + opts.linebreak
 
 # Convert a JSONCSS into a CSS string, using non-recursive traversal.
-dumpcss = (jsoncss) ->
+JsonCss.dumpcss = (jsonCss) ->
 
   # Initialize CSS String.
   cssStr = ''
 
   # Handle imports.
-  if jsoncss.imports
-    for import_ in jsoncss.imports
+  if jsonCss.imports
+    for import_ in jsonCss.imports
       cssStr += formatCssImport(import_)
     
   # Handle rules.
-  if jsoncss.rules
+  if jsonCss.rules
     traversalLog = {'cssStr': ''}
-    rulesStr = traverse(
-      jsoncss.rules,
-      jsoncssGetChildrenFn,
-      jsoncssVisitFn,
+    rulesStr = JsonCss.traverse(
+      jsonCss.rules,
+      JsonCss.getChildren,
+      JsonCss.visit,
       traversalLog
     )
     cssStr += traversalLog.cssStr
 
   return cssStr
- 
-# Define exports.
-exports.dumpcss = dumpcss

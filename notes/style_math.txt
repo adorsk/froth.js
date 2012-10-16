@@ -9,3 +9,15 @@ hmm.  Something like Decorado.eval(styleA + styleB)?
 that might be a bit kludgy.  hmm.
 
 hmm. yah, bit of a pain.  But not something to deal w/ now.
+
+One idea is to use something like a wrapper function:
+
+e.g. unitsFn = function(fn, args...):
+  parsed_args = {}
+  for each arg:
+    parsed_args[arg_idx] = (arg_num, arg_unit)
+  // Check if units differ.  If they do, throw error.
+  // Otherwise, execute fn, and append units to the reuslt.
+  num_result = fn(parsed_args.nums)
+  return str(num_result) + units
+    
