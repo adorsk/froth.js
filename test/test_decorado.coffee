@@ -1,5 +1,6 @@
 require('./common')
-Decorado = require('../decorado')
+{Decorado} = require('../lib/decorado')
+
 
 describe 'Test Decorado', ->
   describe '#compile', ->

@@ -1,0 +1,11 @@
+would be nice to have a way to style math.
+
+similar to how less or sass lets you do '37px + 43px = 80px;'.
+
+can't do this in normal js context.
+
+hmm.  Something like Decorado.eval(styleA + styleB)?
+
+that might be a bit kludgy.  hmm.
+
+hmm. yah, bit of a pain.  But not something to deal w/ now.

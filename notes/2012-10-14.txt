@@ -1,0 +1,27 @@
+bonking a bit on how to go forward from here.
+
+compilation output.  how will that work.
+
+depends on environment.  How do I detect my environment?
+
+check module and window global variables. a la underscore.
+
+Now, how to do output?
+
+in browser, I want workflow to be like this:
+
+include Decorado.
+Decorado.addStyle(style1)
+Decorado.addStyle(style2)
+Decorado.compile()
+
+This will create <script> elements.
+
+what about when I'm compiling files on the server?
+In that case I want it to be more like:
+decorado compile <my_module> config=/tmp/dec.config output_dir=/tmp/foo.
+
+how will that work? basically my app will have 'require' calls.
+The required modules will do decorado stuff.  app will compile, but decorado will *not* put out any <script> elements.  Instead the compiler program will take the compiled result, and then format it. Yah.
+
+

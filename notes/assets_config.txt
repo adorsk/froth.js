@@ -1,0 +1,32 @@
+AssetContext or asset config.
+
+Allows us to specify endpoints for 'url_for'.
+
+So style script might look like...
+mod1.ctx = Decorado.AssetContext.extend({
+  'images': '/path/to/images/'
+});
+
+Or add to global assetcontext registry.
+
+Or, something like...
+
+// Add to AssetContext registry.
+Decorado.Assets.config['mod1'] = {
+  'defaults': {
+    base_url: Decorado.util.get_this_dir()
+  },
+  'overrides': {
+    base_url: afafafssdf
+  }
+}
+
+rules: {
+  selector1: {
+    url: Decorado.url_for('mod1', 'images/foo/bar.png')
+  }
+}
+
+what would control resolution order?  ordering of scripts I think.
+
+We could then inclue a Decorado config module.  That updates the asset paths.
