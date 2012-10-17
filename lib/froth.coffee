@@ -11,24 +11,22 @@ Froth.noConflict = ->
   return this
 
 ###
-Froth.Context
+Froth.Stylesheet
 ###
-Froth.Context = class Context
-  styles: {}
+Froth.Stylesheet = class Stylesheet
+  constructor: (id, rules) ->
+    @id = id
+    @rules = rules ? {}
 
   compile: =>
-    console.log('compile')
-    compiled_css = {}
-    for styleId, style of this.styles
-      compiled_css[styleId] = Froth.JsonCss.dumpcss(style)
-    console.log("compiled_css: %j", compiled_css)
-    # TODO: clean this up! Need better detection here.
-    if window
-      for styleId, compiledStyle of compiled_css
-        styleEl = window.document.createElement("style")
-        styleEl.type = "text/css"
-        styleEl.innerHTML = compiledStyle
-        window.document.head.appendChild(styleEl)
+    return Froth.JsonCss.dumpcss(this.rules)
+
+Froth.defaultStylesheetId = '_froth'
+Froth.stylesheets = {}
+Froth.stylesheets[Froth.defaultStylesheetId] = new Froth.Stylesheet(
+  Froth.defaultStylesheetId
+)
+
 
 ###
 Froth.JSONCSS
@@ -238,3 +236,32 @@ Froth.frothJsonToJsonCss = (frothJson={}) ->
 Froth.merge = (dest, objs...) ->
   for obj in objs
     dest[k] = v for k, v of obj
+
+###
+Froth actions.
+###
+
+Froth.getStylesheet = (stylesheetId) =>
+  stylesheetId ?= Froth.defaultStylesheetId
+  # Create stylesheet if it does not exist.
+  Froth.stylesheets[stylesheetId] ?= new Froth.Stylesheet(stylesheetId)
+  return Froth.stylesheets[stylesheetId]
+
+# Set rules.
+# @TODO: implement parent context, for appending to a given parent.
+# Or perhaps make that a method of the Rule.
+Froth.set = (rules, stylesheetId) =>
+  stylesheet = Froth.getStylesheet(stylesheetId)
+  #@ Todo: handle any rules format, not just Froth JSON.
+  jsoncss = Froth.frothJsonToJsonCss(rules)
+  # Replace existing rules in the stylesheet.
+  for selector, styles of jsoncss
+    stylesheet.rules[selector] = styles
+
+# Update rules.
+Froth.update = =>
+  console.log('update')
+
+# Delete rules.
+Froth.delete = =>
+  console.log('delete')
