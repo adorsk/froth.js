@@ -2,6 +2,11 @@ require('./common')
 Froth = require('../lib/froth')
 
 describe 'Froth Actions', ->
+
+  # Clear stylesheets after each test.
+  afterEach ->
+    Froth.reset()
+
   describe '#Froth.set', ->
     it 'should set rules in the default stylesheet', ->
       rules = {
@@ -25,7 +30,7 @@ describe 'Froth Actions', ->
       stylesheet.rules.should.eql(rules)
 
     it 'should override rules if they exist', ->
-      t0_rules = {
+      rules_0 = {
         '.a' : {
           'color': 'blue',
           'width': 100
@@ -34,13 +39,13 @@ describe 'Froth Actions', ->
           'color': 'red'
         }
       }
-      Froth.set(t0_rules)
-      t1_rules = {
+      Froth.set(rules_0)
+      rules_1 = {
         '.a' : {
           'color': 'orange'
         }
       }
-      Froth.set(t1_rules)
+      Froth.set(rules_1)
       stylesheet = Froth.getStylesheet()
       stylesheet.rules.should.eql({
         '.a' : {
@@ -53,8 +58,32 @@ describe 'Froth Actions', ->
 
 
   describe '#Froth.update', ->
-    it 'should update rules in the default stylesheet'
-    it 'should update rules in the given stylesheet'
+    it 'should update rules', ->
+      rules_0 = {
+        '.a' : {
+          'color': 'blue',
+          'width': 100,
+          'height': 200
+        }
+      }
+      Froth.set(rules_0)
+      rules_1 = {
+        '.a' : {
+          'color' : 'green',
+          'width': 50,
+          'background-color': 'blue'
+        }
+      }
+      Froth.update(rules_1)
+      stylesheet = Froth.getStylesheet()
+      stylesheet.rules.should.eql({
+        '.a' : {
+          'color': 'green',
+          'width': 50,
+          'background-color': 'blue',
+          'height': 200
+        }
+      })
 
   describe '#Froth.delete', ->
     it 'should remove rules in the default stylesheet'

@@ -14,9 +14,9 @@ Froth.noConflict = ->
 Froth.Stylesheet
 ###
 Froth.Stylesheet = class Stylesheet
-  constructor: (id, rules) ->
+  constructor: (id, rules={}) ->
     @id = id
-    @rules = rules ? {}
+    @rules = rules
 
   compile: =>
     return Froth.JsonCss.dumpcss(this.rules)
@@ -241,27 +241,40 @@ Froth.merge = (dest, objs...) ->
 Froth actions.
 ###
 
-Froth.getStylesheet = (stylesheetId) =>
+Froth.getStylesheet = (stylesheetId) ->
   stylesheetId ?= Froth.defaultStylesheetId
   # Create stylesheet if it does not exist.
   Froth.stylesheets[stylesheetId] ?= new Froth.Stylesheet(stylesheetId)
   return Froth.stylesheets[stylesheetId]
 
-# Set rules.
-# @TODO: implement parent context, for appending to a given parent.
-# Or perhaps make that a method of the Rule.
-Froth.set = (rules, stylesheetId) =>
+# Common code for set/get.
+Froth._set_update_common = (rules, stylesheetId) ->
   stylesheet = Froth.getStylesheet(stylesheetId)
   #@ Todo: handle any rules format, not just Froth JSON.
   jsoncss = Froth.frothJsonToJsonCss(rules)
+  return [stylesheet, jsoncss]
+
+
+# Set rules.
+# @TODO: implement parent context, for appending to a given parent.
+# Or perhaps make that a method of the Rule.
+Froth.set = (rules, stylesheetId) ->
+  [stylesheet, jsoncss] = Froth._set_update_common(rules, stylesheetId)
   # Replace existing rules in the stylesheet.
   for selector, styles of jsoncss
     stylesheet.rules[selector] = styles
 
 # Update rules.
-Froth.update = =>
-  console.log('update')
+Froth.update = (rules, stylesheetId) ->
+  [stylesheet, jsoncss] = Froth._set_update_common(rules, stylesheetId)
+  # Update existing rules in the stylesheet.
+  for selector, styles of jsoncss
+    Froth.merge(stylesheet.rules[selector], styles)
 
 # Delete rules.
-Froth.delete = =>
+Froth.delete = ->
   console.log('delete')
+
+# Clear all stylesheets.
+Froth.reset = ->
+  Froth.stylesheets = {}
