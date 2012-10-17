@@ -11,24 +11,6 @@ Froth.noConflict = ->
   return this
 
 ###
-Froth.Stylesheet
-###
-Froth.Stylesheet = class Stylesheet
-  constructor: (id, rules={}) ->
-    @id = id
-    @rules = rules
-
-  compile: =>
-    return Froth.JsonCss.dumpcss(this.rules)
-
-Froth.defaultStylesheetId = '_froth'
-Froth.stylesheets = {}
-Froth.stylesheets[Froth.defaultStylesheetId] = new Froth.Stylesheet(
-  Froth.defaultStylesheetId
-)
-
-
-###
 Froth.JSONCSS
 ###
 JsonCss = Froth.JsonCss = {}
@@ -133,6 +115,24 @@ JsonCss.dumpcss = (jsonCss) ->
     cssStr += traversalLog.cssStr
 
   return cssStr
+
+###
+Froth.Stylesheet
+###
+Froth.Stylesheet = class Stylesheet
+  constructor: (id, rules={}) ->
+    @id = id
+    @rules = rules
+
+  toCss: =>
+    return Froth.JsonCss.dumpcss(this)
+
+Froth.defaultStylesheetId = '_froth'
+Froth.stylesheets = {}
+Froth.stylesheets[Froth.defaultStylesheetId] = new Froth.Stylesheet(
+  Froth.defaultStylesheetId
+)
+
 
 ###
 Misc. Helpers
