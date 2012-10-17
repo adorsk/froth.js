@@ -1,4 +1,7 @@
 #!/usr/bin/env node
-
 require('coffee-script')
-require('../lib/frothc')
+frothc = require('../lib/frothc')
+src_file = process.argv[2]
+src = require(src_file)
+
+frothc.compile()
