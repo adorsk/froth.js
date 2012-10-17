@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .section {
+                float: left;
+            }
+        </style>
+        <script src="require.js"></script>
+        <script>
+            require.config({
+                baseUrl: 'js',
+                paths: {
+                    'froth': '../froth'
+                },
+                shim: {
+                    'froth': {
+                        exports: 'Froth'
+                    }
+                }
+            });
+
+            require(['app', 'froth'], function (app, Froth) {
+                console.log("app is: ", app, Froth);
+            });
+        </script>
+    </head>
+    <body>
+        <h1>Hello World</h1>
+    </body>
+</html>
