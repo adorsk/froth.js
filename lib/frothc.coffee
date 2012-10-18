@@ -48,33 +48,39 @@ bundleAssets = ->
       for attr, value of style
         if typeof value == 'string'
           style[attr] = value.replace(
-            /url\((.*?)\)/g,
+            /(url\(["'])(.*?)(["']\))/g,
             processUrlForBundling
           )
 
 # Process a url for bundling.
-processUrlForBundling = (url) ->
+processUrlForBundling = (match...) ->
+  # The url will be the 2nd match element.
+  url = match[2]
   console.log('processUrlForBundling', url)
+  # Extract the path from the url.
   # Use the first rewrite rule we find that matches.
   condition = null
   key = null
   foundRule = false
   rewriteRules = Froth.config.bundling.rewriteRules ? []
-  for condition, key of rewriteRules
+  for condition, rewrite of rewriteRules
+    condition = new RegExp(condition)
     if url.match(condition)
       foundRule = true
       break
   # If we found a rule...
   if foundRule
     # Generate asset's relative path
-    filename = url.replace(/^.*\//, '')
-    relPath = key + "/" + filename
+    sourceRelPath = url.replace(condition, '')
+    targetRelPath = rewrite.targetKey + "/" + sourceRelPath
 
     # Fetch the asset and put it in the target dir.
+    sourceAbsPath = rewrite.sourceDir + '/' + sourceRelPath
+    console.log(sourceAbsPath, 'sap')
     # @TODO!
     
     # Rewrite the url.
-    url = Froth.config.bundling.baseRewriteUrl + '/' + relPath
+    url = Froth.config.bundling.baseRewriteUrl + '/' + targetRelPath
 
   console.log('returning: ', url)
   return url

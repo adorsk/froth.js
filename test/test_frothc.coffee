@@ -70,12 +70,15 @@ describe 'frothc', ->
         baseRewriteUrl: '/new/base',
         bundleDir: 'bundled_assets',
         rewriteRules: {
-          '/path1': 'key1'
+          '\/path1\/': {
+            targetKey: 'key1',
+            sourceDir: '/tmp/foo'
+          }
         }
       }
       Froth.set({
         '.a': {
-          'background-image': 'url("/path1/foo.png")'
+          'background-image': 'url("/path1/fooDir/foo.png")'
         }
       })
 
