@@ -11,7 +11,16 @@ frothc.compile = (opts={}) ->
   # Merge defaults with provided options.
   opts = Froth.merge(default_opts, opts)
 
-  # Get the css documents for each stylesheet.
+  # Convert stylesheet rules from Froth JSON to JSONCSS.
+  for id, stylesheet of Froth.stylesheets
+    stylesheet.rules = Froth.frothJsonToJsonCss(stylesheet.rules)
+
+  # If bundling assets, process accordingly.
+  # if Froth.config.bundleAssets
+  if true
+    bundleAssets()
+
+  # Compile the css documents for each stylesheet.
   cssDocs = {}
   for id, stylesheet of Froth.stylesheets
     cssDocs[id] = stylesheet.toCss()
@@ -27,3 +36,45 @@ frothc.compile = (opts={}) ->
     else if opts.consolidateTo.write
       opts.consolidateTo.write(consolidatedDoc)
 
+# Bundle assets.
+# Assumes stylesheet rules have been converted to 
+# flat JSONCSS.
+bundleAssets = ->
+  console.log('bundle!')
+  # For each stylesheet...
+  for id, stylesheet of Froth.stylesheets
+    # Process urls in values.
+    for selector, style of stylesheet.rules
+      for attr, value of style
+        if typeof value == 'string'
+          style[attr] = value.replace(
+            /url\((.*?)\)/g,
+            processUrlForBundling
+          )
+
+# Process a url for bundling.
+processUrlForBundling = (url) ->
+  console.log('processUrlForBundling', url)
+  # Use the first rewrite rule we find that matches.
+  condition = null
+  key = null
+  foundRule = false
+  rewriteRules = Froth.config.bundling.rewriteRules ? []
+  for condition, key of rewriteRules
+    if url.match(condition)
+      foundRule = true
+      break
+  # If we found a rule...
+  if foundRule
+    # Generate asset's relative path
+    filename = url.replace(/^.*\//, '')
+    relPath = key + "/" + filename
+
+    # Fetch the asset and put it in the target dir.
+    # @TODO!
+    
+    # Rewrite the url.
+    url = Froth.config.bundling.baseRewriteUrl + '/' + relPath
+
+  console.log('returning: ', url)
+  return url

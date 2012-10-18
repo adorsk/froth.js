@@ -16,7 +16,7 @@ describe 'frothc', ->
   afterEach ->
     Froth.reset()
 
-  describe '#frothc.compile', ->
+  describe.skip '#frothc.compile', ->
     it 'should generate a CSS document', ->
       rules = {
         '.a' : {
@@ -63,3 +63,23 @@ describe 'frothc', ->
 }
 
       """)
+
+  describe '#frothc.bundleAssets', ->
+    it 'should bundle assets', ->
+      Froth.config.bundling = {
+        baseRewriteUrl: '/new/base',
+        bundleDir: 'bundled_assets',
+        rewriteRules: {
+          '/path1': 'key1'
+        }
+      }
+      Froth.set({
+        '.a': {
+          'background-image': 'url("/path1/foo.png")'
+        }
+      })
+
+      strFile = new StringFile()
+      frothc.compile({
+        consolidateTo: strFile
+      })

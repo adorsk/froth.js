@@ -10,6 +10,13 @@ Froth.noConflict = ->
   root.Froth = oldFroth
   return this
 
+Froth.config = {
+  bundling: {
+    baseRewriteUrl: '',
+    bundleDir: 'bundled_assets'
+  }
+}
+
 ###
 Froth.JSONCSS
 ###
