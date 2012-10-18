@@ -1,5 +1,7 @@
 Froth = require('./froth')
-fs = require('fs');
+fs = require('fs')
+wrench = require('wrench')
+util = require('util')
 
 frothc = exports
 
@@ -39,8 +41,7 @@ frothc.compile = (opts={}) ->
 # Bundle assets.
 # Assumes stylesheet rules have been converted to 
 # flat JSONCSS.
-bundleAssets = ->
-  console.log('bundle!')
+frothc.bundleAssets = ->
   # For each stylesheet...
   for id, stylesheet of Froth.stylesheets
     # Process urls in values.
@@ -56,7 +57,6 @@ bundleAssets = ->
 processUrlForBundling = (match...) ->
   # The url will be the 2nd match element.
   url = match[2]
-  console.log('processUrlForBundling', url)
   # Extract the path from the url.
   # Use the first rewrite rule we find that matches.
   condition = null
@@ -76,11 +76,25 @@ processUrlForBundling = (match...) ->
 
     # Fetch the asset and put it in the target dir.
     sourceAbsPath = rewrite.sourceDir + '/' + sourceRelPath
-    console.log(sourceAbsPath, 'sap')
-    # @TODO!
+    targetAbsPath = Froth.config.bundling.bundleDir + '/' + targetRelPath
+    targetAbsDir = targetAbsPath.replace(/[^\/]*$/, '')
+    wrench.mkdirSyncRecursive(targetAbsDir)
+    cpfile(sourceAbsPath, targetAbsPath)
     
     # Rewrite the url.
     url = Froth.config.bundling.baseRewriteUrl + '/' + targetRelPath
 
-  console.log('returning: ', url)
+    # Rewrap url in "url('')"
+    url = match[1] + url + match[3]
+
   return url
+
+# <grumble> I wish this was in node.js core...
+cpfile = (src, dest) ->
+  srcStream = fs.createReadStream(src)
+  destStream = fs.createWriteStream(dest)
+  destStream.once 'open', (fd) ->
+    util.pump srcStream, destStream, ->
+      srcStream.close()
+      destStream.close()
+

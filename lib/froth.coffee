@@ -88,7 +88,7 @@ JsonCss.formatCssRule = (selector, styleAttrs, opts={}) ->
   cssStr += selector + " {" + opts.linebreak
 
   for k, v of styleAttrs
-    attrStr = opts.indent + k + ": " + v + opts.linebreak
+    attrStr = opts.indent + k + ": " + v + ';' + opts.linebreak
     cssStr += attrStr
 
   cssStr += "}" + opts.linebreak
