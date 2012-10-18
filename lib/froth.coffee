@@ -17,6 +17,10 @@ Froth.config = {
   }
 }
 
+# Include CSS Parser (from https://github.com/NV/CSSOM)
+# @TODO: inline this for min.js build.
+cssom = require('./contrib/cssom.min.js')
+
 ###
 Froth.JSONCSS
 ###
@@ -122,6 +126,23 @@ JsonCss.dumpcss = (jsonCss) ->
     cssStr += traversalLog.cssStr
 
   return cssStr
+
+# Convert CSS to JSONCSS
+JsonCss.loadcss = (css) ->
+  jsoncss = {}
+  cssom_json = cssom.parse(css)
+  for key, rule of cssom_json.cssRules
+    selector = Froth.normalizeSelector(rule.selectorText)
+    jsoncss[selector] ?= {}
+    if rule?.style?.length
+      style = rule.style
+      for i in [0 .. (style.length - 1)]
+        styleKey = style[i]
+        styleValue = style[styleKey]
+        if style._importants[styleKey]
+          styleValue += ' !important'
+        jsoncss[selector][styleKey] = styleValue
+   return jsoncss
 
 ###
 Froth.Stylesheet

@@ -97,4 +97,3 @@ cpfile = (src, dest) ->
     util.pump srcStream, destStream, ->
       srcStream.close()
       destStream.close()
-

@@ -1,5 +1,5 @@
 require('./common')
-Froth = require('../lib/froth')
+Froth = require('../lib/froth.coffee')
 
 describe 'Froth Actions', ->
 
