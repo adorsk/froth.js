@@ -1,0 +1,104 @@
+thinking more eabout bundling assets.
+
+How do I want assets to be bundled?  Namespaced?
+
+I can think o fa few ways...
+
+One way (A) is to namespace by stylesheet id.
+
+E.g. the reuslt looks like:
+---
+bundle/
+  bundle.css
+  assets
+    stylesheet_1/
+      key1/
+        foo.png
+      key2/
+        bar.png
+      _external
+      ...
+    stylesheet_2/
+      key1/
+        foo.png
+      key3/
+        chicken.png
+      ...
+      _external
+    ...
+---
+
+Another way (B) is to namespace by keys.
+---
+bundle/
+  bundle.css
+  assets
+    key1/
+      foo.png
+      foo_1.png
+    key2/
+        bar.png
+    key3/
+      chicken.png
+    ...
+    _external
+---
+
+(A) makes it easier to see where assets came from.  (B) makes it easier to manage assets from the same namespace.
+
+
+Possible a compromise/hybrid solution involving dual namespaces, symlinking (or copying twice):
+
+---
+bundle/
+  bundle.css
+  assets
+    keys/
+      key1/
+        foo.png
+        foo_1.png
+      key2/
+          bar.png
+      key3/
+        chicken.png
+    stylesheets/
+      stylesheet_1/
+        key1 -> ../../keys/key1
+        key2 -> ../../keys/key2
+      stylesheet_2/
+        key1 -> ../../keys/key1
+        key3 -> ../../keys/key3
+---
+
+Another option is to put everything in one big pool, and just use unique filenaming.
+
+---
+bundle/
+  bundle.css
+  assets
+    foo.png
+    foo_1.png
+    bar.png
+    chicken.png
+---
+
+This produces the most palatable bundle for copying/uploading, but loses all provenance info.
+
+Will that be an issue?  I don't think so.  And it produces a great simplification.  RewriteRules then becomes a list of watch paths, no keys needed.
+
+I can use caching to avoid downloading duplicates. Caching based on source uri.
+
+Hmm.  Ok.
+
+
+Now think on inlining @imports.
+
+If the @import href is relative, or it matches a rule, then inline it.
+We do that by:
+  getting the @import source.
+  creating a stylesheet from it.
+  recursively calling bundle on the resulting stylesheet.
+  merging the result with the stylesheet that contained the import.
+  circularity is not permitted. Throw an error if we visit the same sheet multiple times.  This is a corner case.  Punt on it for now until I have a better idea of how to handle it.  Yah.
+  Ok.  That will be good.
+

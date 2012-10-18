@@ -1,3 +1,4 @@
 * Querying: probably via regex search of all the paths, using normalized selector.
 
 * server-side compilation: asset bundling, inlining.
+  bundling: work on inling @imports, handling recursive bundling.  See notes on bundling.
