@@ -129,20 +129,33 @@ JsonCss.dumpcss = (jsonCss) ->
 
 # Convert CSS to JSONCSS
 JsonCss.loadcss = (css) ->
-  jsoncss = {}
+  jsoncss = {
+    imports: {},
+    rules: {}
+  }
+
   cssom_json = cssom.parse(css)
+
   for key, rule of cssom_json.cssRules
-    selector = Froth.normalizeSelector(rule.selectorText)
-    jsoncss[selector] ?= {}
-    if rule?.style?.length
-      style = rule.style
-      for i in [0 .. (style.length - 1)]
-        styleKey = style[i]
-        styleValue = style[styleKey]
-        if style._importants[styleKey]
-          styleValue += ' !important'
-        jsoncss[selector][styleKey] = styleValue
-   return jsoncss
+    # Handle import rules.
+    if rule.href
+      jsoncss.imports[rule.href] = {
+        media: rule.media
+      }
+    # Handle normal rules.
+    else if rule.selectorText
+      selector = Froth.normalizeSelector(rule.selectorText)
+      jsoncss.rules[selector] ?= {}
+      if rule.style?.length
+        style = rule.style
+        for i in [0 .. (style.length - 1)]
+          styleKey = style[i]
+          styleValue = style[styleKey]
+          if style._importants[styleKey]
+            styleValue += ' !important'
+          jsoncss.rules[selector][styleKey] = styleValue
+
+  return jsoncss
 
 ###
 Froth.Stylesheet
