@@ -9,6 +9,25 @@ frothc = exports
 
 frothc._fetchedUrls = {}
 
+# Helper functions for predictably unique filenames.
+frothc.hashCode = (str) ->
+  hash = 0
+  if not str.length
+    return hash
+  else
+    for i in [0..str.length-1]
+      char = str.charCodeAt(i)
+      hash = ((hash<<5)-hash)+char
+      hash = hash & hash
+  return hash
+
+frothc.uniqueFilename = (url) ->
+  filename = url.replace(/.*\//, '')
+  filenameParts = filename.split('.')
+  urlHash = frothc.hashCode(url)
+  filenameParts.splice(filenameParts.length-1, urlHash 
+  return filenameParts.join('.')
+
 frothc.compile = (opts={}) ->
   # Define default options.
   default_opts = {
@@ -120,9 +139,8 @@ processUrlForBundling = (url, opts={}) ->
     # the target dir.
     if not frothc._fetchedUrls[url]
       # Get asset filename.
-      filename = url.replace(/.*\//, '')
-      # Generate safe target path.
-      # @TODO: implement safe file naming to avoid clobbering duplicate names.
+      # We use a hash code on the url to avoid clobbering files with the same name.
+      filename = frothc.uniqueFilename(url)
       
       # Fetch the url.
       srcStream = getStreamForUrl(url)

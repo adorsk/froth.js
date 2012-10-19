@@ -141,7 +141,9 @@ describe 'frothc', ->
               original: mockAssetPath
               expected: Froth.config.bundling.baseUrl + '/' + mockAssetFilename
             }
-            expected_files.push(Froth.config.bundling.bundleDir + '/' + mockAssetFilename)
+            filePath = Froth.config.bundling.bundleDir + '/' + mockAssetFilename
+            filename = frothc.uniqueFilename(filePath)
+            expected_files.push(Froth.config.bundling.bundleDir + '/' + filename)
             i += 1
 
         test_rules = {}
