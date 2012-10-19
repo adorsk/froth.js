@@ -101,25 +101,16 @@ processUrlForBundling = (url, opts={}) ->
       filename = url.replace(/.*\//, '')
       # Generate safe target path.
       # @TODO: implement safe file naming to avoid clobbering duplicate names.
+      
+      # Fetch the url.
       srcStream = getStreamForUrl(url)
       targetPath = Froth.config.bundling.bundleDir + '/' + filename
       targetStream = fs.createWriteStream(targetPath)
-
-      # Synchronous fetch.
-      if opts.sync
-        srcStream.once.sync 'open', (srcFd) ->
-          targetStream.once.sync 'open', (targetfd) ->
-            util.pump.sync srcStream, targetStream, ->
-              srcStream.close()
-              targetStream.close()
-        
-      # Asynchronous fetch.
-      else
-        srcStream.once 'open', (srcFd) ->
-          targetStream.once 'open', (targetfd) ->
-            util.pump srcStream, targetStream, ->
-              srcStream.close()
-              targetStream.close()
+      srcStream.once 'open', (srcFd) ->
+        targetStream.once 'open', (targetfd) ->
+          util.pump srcStream, targetStream, ->
+            srcStream.close()
+            targetStream.close()
 
       assetUrl = Froth.config.bundling.baseUrl + '/' + filename
       frothc._fetchedUrls[url] = assetUrl
