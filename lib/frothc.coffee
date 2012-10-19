@@ -53,6 +53,34 @@ frothc.bundleAssets = ->
             processUrlForBundling
           )
 
+# Bundle a stylesheet.
+frothc.bundleStylesheet = (stylesheet, opts={}) ->
+  # Create a bundled sheet which will merge
+  # the stylesheet's imports, and the stylesheet's own rules.
+  bundledStylesheet = new Froth.Stylesheet()
+  bundledStylesheet.id = stylesheet.id + '__bundled'
+
+  # For each import...
+  for import_ in stylesheet.imports
+    # If import href matches RewriteRule...
+    if 1
+      # Fetch the import source.
+      # Create a new stylesheet from the source.
+      # Bundle the import.
+      # Add the bundled stylesheet's rules to the main bundled sheet.
+    # Otherwise...
+    else
+      # Add the import to the bundled stylsheet's imports.
+
+  # Process urls in values.
+  for selector, style of stylesheet.rules
+    for attr, value of style
+      if typeof value == 'string'
+        style[attr] = value.replace(
+          /(url\(["'])(.*?)(["']\))/g,
+            processUrlForBundling
+        )
+
 # Process a url for bundling.
 processUrlForBundling = (match...) ->
   # The url will be the 2nd match element.

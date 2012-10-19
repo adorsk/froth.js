@@ -102,3 +102,5 @@ We do that by:
   circularity is not permitted. Throw an error if we visit the same sheet multiple times.  This is a corner case.  Punt on it for now until I have a better idea of how to handle it.  Yah.
   Ok.  That will be good.
 
+
+Also, keep a bundling log, that will record what assets could/could not be bundled, and the mapping.  In json, for easier parsing.  Tres bon.
