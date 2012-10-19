@@ -66,14 +66,14 @@ describe 'frothc', ->
 
       """)
 
-  describe '#frothc.bundleAssets', ->
+  describe '#frothc.bundling', ->
     # Create temporary dirs and mock assets, and setup bundling config.
     beforeEach ->
-      this.dirs = {}
-      this.dirs.tmpBaseDir = '/tmp/frothc.test.' + process.pid
-      this.dirs.tmpAssets = this.dirs.tmpBaseDir + '/assets'
-      this.dirs.tmpBundleDir = this.dirs.tmpBaseDir + '/bundle'
-      for dirName, path of this.dirs
+      this.tmpDirs = {}
+      this.tmpDirs.root = '/tmp/frothc.test.' + process.pid
+      this.tmpDirs.assets = this.tmpDirs.root + '/assets'
+      this.tmpDirs.bundle = this.tmpDirs.root + '/bundle'
+      for dirName, path of this.tmpDirs
         fs.mkdirSync(path)
 
       # Setup assets and rewrite rules.
@@ -82,50 +82,56 @@ describe 'frothc', ->
         'barDir/bar.png'
       ]
 
-      this.mockPathsKeys = {
-        'path1' : 'key1',
-        'path2' : 'key2',
-      }
+      this.mockPaths = [
+        'path1',
+        'path2'
+      ]
 
-      this.rewriteRules = {}
-
-      for path, key of this.mockPathsKeys
-        this.rewriteRules[path + '\/'] = {
-          targetKey: key,
-          sourceDir: this.dirs.tmpAssets + '/' + path
-        }
+      this.rewrites = []
+      for path in this.mockPaths
+        this.rewrites.push(
+          [new RegExp("^#{path}/"), this.tmpDirs.assets + '/' + path + '/']
+        )
         for mockAsset in this.mockAssets
           mockAssetPath = path + '/' + mockAsset
           assetRelDir = mockAssetPath.replace(/[^\/]*$/, '')
-          wrench.mkdirSyncRecursive(this.dirs.tmpAssets + '/' + assetRelDir)
-          fs.writeFile(this.dirs.tmpAssets + '/' + mockAssetPath, mockAsset + ' content')
+          wrench.mkdirSyncRecursive(this.tmpDirs.assets + '/' + assetRelDir)
+          fs.writeFile(this.tmpDirs.assets + '/' + mockAssetPath, mockAsset + ' content')
 
-      Froth.config.bundling = {
-        baseRewriteUrl: '/new/base',
-        bundleDir: this.dirs.tmpBundleDir,
-        rewriteRules: this.rewriteRules
+      this.defaultBundlingConfig = {
+        bundleBaseUrl: '/new/base',
+        bundleDir: this.tmpDirs.bundle,
+        rewrites: this.rewrites
+      }
+
+      this.defaultBundlingOpts = {
+        sync: true
       }
     
     # Remove temporary dirs.
     afterEach ->
-      wrench.rmdirSyncRecursive(this.dirs.tmpBaseDir)
+      #wrench.rmdirSyncRecursive(this.tmpDirs.root)
       Froth.reset()
 
     it 'should bundle assets', ->
+      Froth.config.bundling = Froth.merge({}, this.baseBundlingConfig, {
+        baseUrl: '/new/base',
+        bundleDir: this.tmpDirs.bundle,
+      })
       # Set up rules w/ test assets.
       test_urls = {}
       i = 0
       expected_files = []
-      for path, key of this.mockPathsKeys
+      for path in [this.mockPaths[0]]
         for mockAsset in this.mockAssets
+          mockAssetPath = path + '/' + mockAsset
+          mockAssetFilename = mockAssetPath.replace(/.*\//, '')
           selector = 's_' + i
-          key = this.mockPathsKeys[path]
-          targetRelPath = '/' + key + '/' + mockAsset
           test_urls[selector] = {
-            original: path + '/' + mockAsset,
-            expected: Froth.config.bundling.baseRewriteUrl + targetRelPath
+            original: mockAssetPath
+            expected: Froth.config.bundling.baseUrl + '/' + mockAssetFilename
           }
-          expected_files.push(Froth.config.bundling.bundleDir + targetRelPath)
+          expected_files.push(Froth.config.bundling.bundleDir + '/' + mockAssetFilename)
           i += 1
 
       test_rules = {}
@@ -139,7 +145,7 @@ describe 'frothc', ->
         }
 
       Froth.set(test_rules)
-      frothc.bundleAssets()
+      frothc.bundleAssets(this.defaultBundlingOpts)
       stylesheet = Froth.stylesheets[Froth.defaultStylesheetId]
 
       # Check that rewritten urls are as expected.
@@ -147,8 +153,8 @@ describe 'frothc', ->
 
       # Check that bundle includes expected files.
       actual_files = []
-      for item in wrench.readdirSyncRecursive(this.dirs.tmpBundleDir)
-        item = this.dirs.tmpBundleDir + '/' + item
+      for item in wrench.readdirSyncRecursive(this.tmpDirs.bundle)
+        item = this.tmpDirs.bundle + '/' + item
         if fs.statSync(item).isFile()
           actual_files.push(item)
 

@@ -2,8 +2,12 @@ Froth = require('./froth')
 fs = require('fs')
 wrench = require('wrench')
 util = require('util')
+request = require('request')
+sync = require('sync')
 
 frothc = exports
+
+frothc._fetchedUrls = {}
 
 frothc.compile = (opts={}) ->
   # Define default options.
@@ -41,17 +45,10 @@ frothc.compile = (opts={}) ->
 # Bundle assets.
 # Assumes stylesheet rules have been converted to 
 # flat JSONCSS.
-frothc.bundleAssets = ->
+frothc.bundleAssets = (opts={}) ->
   # For each stylesheet...
   for id, stylesheet of Froth.stylesheets
-    # Process urls in values.
-    for selector, style of stylesheet.rules
-      for attr, value of style
-        if typeof value == 'string'
-          style[attr] = value.replace(
-            /(url\(["'])(.*?)(["']\))/g,
-            processUrlForBundling
-          )
+    bundledStylesheet = frothc.bundleStylesheet(stylesheet, opts)
 
 # Bundle a stylesheet.
 frothc.bundleStylesheet = (stylesheet, opts={}) ->
@@ -61,67 +58,110 @@ frothc.bundleStylesheet = (stylesheet, opts={}) ->
   bundledStylesheet.id = stylesheet.id + '__bundled'
 
   # For each import...
-  for import_ in stylesheet.imports
+  for import_ in stylesheet.imports ? []
     # If import href matches RewriteRule...
     if 1
-      # Fetch the import source.
-      # Create a new stylesheet from the source.
-      # Bundle the import.
+      1
+      # Get the import's path.
+      # If the import has not been bundled...
+        # Fetch the import source.
+        # Create a new stylesheet from the source.
+        # Bundle the imported stylesheet.
+      # Get the bundled import.
       # Add the bundled stylesheet's rules to the main bundled sheet.
     # Otherwise...
     else
       # Add the import to the bundled stylsheet's imports.
+      1
 
   # Process urls in values.
-  for selector, style of stylesheet.rules
+  for selector, style of stylesheet.rules ? []
     for attr, value of style
       if typeof value == 'string'
         style[attr] = value.replace(
-          /(url\(["'])(.*?)(["']\))/g,
-            processUrlForBundling
+          /(url\(["'])(.*?)(["']\))/g, (match...) ->
+            url = match[2]
+            processedUrl = processUrlForBundling(url, opts)
+            # Wrap the url in its original 'url(...)' context.
+            return match[1] + processedUrl + match[3]
         )
 
 # Process a url for bundling.
-processUrlForBundling = (match...) ->
-  # The url will be the 2nd match element.
-  url = match[2]
-  # Extract the path from the url.
-  # Use the first rewrite rule we find that matches.
-  condition = null
-  key = null
-  foundRule = false
-  rewriteRules = Froth.config.bundling.rewriteRules ? []
-  for condition, rewrite of rewriteRules
-    condition = new RegExp(condition)
-    if url.match(condition)
-      foundRule = true
-      break
-  # If we found a rule...
-  if foundRule
-    # Generate asset's relative path
-    sourceRelPath = url.replace(condition, '')
-    targetRelPath = rewrite.targetKey + "/" + sourceRelPath
+processUrlForBundling = (url, opts={}) ->
 
-    # Fetch the asset and put it in the target dir.
-    sourceAbsPath = rewrite.sourceDir + '/' + sourceRelPath
-    targetAbsPath = Froth.config.bundling.bundleDir + '/' + targetRelPath
-    targetAbsDir = targetAbsPath.replace(/[^\/]*$/, '')
-    wrench.mkdirSyncRecursive(targetAbsDir)
-    cpfile(sourceAbsPath, targetAbsPath)
+  # Rewrite the url per the rewrite rules.
+  url = rewriteUrl(url, Froth.config.bundling.rewrites ? [])
+
+  # If we should fetch the url (per includes and excludes).
+  if shouldFetchUrl(url, Froth.config.bundling)
+    # If the url has not been fetched, fetch it and write to the
+    # the target dir.
+    if not frothc._fetchedUrls[url]
+      # Get asset filename.
+      filename = url.replace(/.*\//, '')
+      # Generate safe target path.
+      # @TODO: implement safe file naming to avoid clobbering duplicate names.
+      srcStream = getStreamForUrl(url)
+      targetPath = Froth.config.bundling.bundleDir + '/' + filename
+      targetStream = fs.createWriteStream(targetPath)
+
+      # Synchronous fetch.
+      if opts.sync
+        srcStream.once.sync 'open', (srcFd) ->
+          targetStream.once.sync 'open', (targetfd) ->
+            util.pump.sync srcStream, targetStream, ->
+              srcStream.close()
+              targetStream.close()
+        
+      # Asynchronous fetch.
+      else
+        srcStream.once 'open', (srcFd) ->
+          targetStream.once 'open', (targetfd) ->
+            util.pump srcStream, targetStream, ->
+              srcStream.close()
+              targetStream.close()
+
+      assetUrl = Froth.config.bundling.baseUrl + '/' + filename
+      frothc._fetchedUrls[url] = assetUrl
     
-    # Rewrite the url.
-    url = Froth.config.bundling.baseRewriteUrl + '/' + targetRelPath
-
-    # Rewrap url in "url('')"
-    url = match[1] + url + match[3]
+    # Replace url with asset url (if exists).
+    url = frothc._fetchedUrls[url] ? url
 
   return url
 
-# <grumble> I wish this was in node.js core...
-cpfile = (src, dest) ->
-  srcStream = fs.createReadStream(src)
-  destStream = fs.createWriteStream(dest)
-  destStream.once 'open', (fd) ->
-    util.pump srcStream, destStream, ->
-      srcStream.close()
-      destStream.close()
+# Determine whether a url should be fetched, as per
+# opts.includes and opts.excludes.
+# opts.includes takes precendence over excludes.
+shouldFetchUrl = (url, opts={}) ->
+  includes = opts.includes ? []
+  excludes = opts.excludes ? []
+
+  for inc in includes
+    if url.match(inc)
+      return true
+
+  for exc in excludes
+    if url.match(exc)
+      return false
+
+  return true
+
+# Get readStream for the given url.
+getStreamForUrl = (url) ->
+  if url.match(/^http:\/\//)
+    return request(url)
+  else
+    return fs.createReadStream(url)
+
+# Rewrite a url based on the given rewrite rules.
+# Last matching rule will be used.
+rewriteUrl = (url, rules) ->
+  # Loop through rules in reverse order until a match is found.
+  for i in [rules.length - 1..0] by -1
+    rule = rules[i]
+    rewrittenUrl = url.replace(rule[0], rule[1])
+    # If rewritten url differs, we have matched and shoul return.
+    if rewrittenUrl != url
+      return rewrittenUrl
+  # Return the original url if no match was found.
+  return url

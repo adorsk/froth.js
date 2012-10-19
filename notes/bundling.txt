@@ -104,3 +104,12 @@ We do that by:
 
 
 Also, keep a bundling log, that will record what assets could/could not be bundled, and the mapping.  In json, for easier parsing.  Tres bon.
+
+bundling config, use rewrites, includes, excludes.
+
+E.g.
+config.bundling{
+  rewrite: {},
+  include: {},
+  exclude: {}
+}
