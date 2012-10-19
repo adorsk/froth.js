@@ -1,9 +1,9 @@
-Froth = require('./froth')
+Froth = require('./froth.coffee')
 fs = require('fs')
 wrench = require('wrench')
 util = require('util')
 request = require('request')
-sync = require('sync')
+$ = require('jquery')
 
 frothc = exports
 
@@ -43,15 +43,27 @@ frothc.compile = (opts={}) ->
       opts.consolidateTo.write(consolidatedDoc)
 
 # Bundle assets.
+# Returns a promise that resolves when all assets have been resolved and fetched.
 # Assumes stylesheet rules have been converted to 
 # flat JSONCSS.
 frothc.bundleAssets = (opts={}) ->
+  deferred = $.Deferred()
+  deferreds = []
   # For each stylesheet...
   for id, stylesheet of Froth.stylesheets
-    bundledStylesheet = frothc.bundleStylesheet(stylesheet, opts)
+    [bundledStylesheet, deferred] = frothc.bundleStylesheet(stylesheet, opts)
+    deferreds.push(deferred)
+  promise = $.when(deferreds...)
+  promise.done ->
+    deferred.resolve(arguments)
+  promise.fail ->
+    deferred.reject(arguments)
+  return deferred
 
 # Bundle a stylesheet.
 frothc.bundleStylesheet = (stylesheet, opts={}) ->
+  deferred = $.Deferred()
+  deferreds = []
   # Create a bundled sheet which will merge
   # the stylesheet's imports, and the stylesheet's own rules.
   bundledStylesheet = new Froth.Stylesheet()
@@ -75,19 +87,29 @@ frothc.bundleStylesheet = (stylesheet, opts={}) ->
       1
 
   # Process urls in values.
-  for selector, style of stylesheet.rules ? []
+  for selector, style of stylesheet.rules ? {}
     for attr, value of style
       if typeof value == 'string'
         style[attr] = value.replace(
           /(url\(["'])(.*?)(["']\))/g, (match...) ->
             url = match[2]
-            processedUrl = processUrlForBundling(url, opts)
+            [processedUrl, urlDeferred] = processUrlForBundling(url, opts)
+            deferreds.push(urlDeferred)
             # Wrap the url in its original 'url(...)' context.
             return match[1] + processedUrl + match[3]
         )
+  promise = $.when(deferreds...)
+  promise.done ->
+    deferred.resolve(arguments)
+  promise.fail ->
+    deferred.reject(arguments)
+
+  return [bundledStylesheet, deferred]
 
 # Process a url for bundling.
 processUrlForBundling = (url, opts={}) ->
+
+  deferred = $.Deferred()
 
   # Rewrite the url per the rewrite rules.
   url = rewriteUrl(url, Froth.config.bundling.rewrites ? [])
@@ -106,11 +128,18 @@ processUrlForBundling = (url, opts={}) ->
       srcStream = getStreamForUrl(url)
       targetPath = Froth.config.bundling.bundleDir + '/' + filename
       targetStream = fs.createWriteStream(targetPath)
+
       srcStream.once 'open', (srcFd) ->
         targetStream.once 'open', (targetfd) ->
           util.pump srcStream, targetStream, ->
-            srcStream.close()
-            targetStream.close()
+            srcStream.destroy()
+            targetStream.destroy()
+            deferred.resolve()
+
+      onError = ->
+        deferred.reject(arguments)
+      srcStream.on 'error', onError
+      targetStream.on 'error', onError
 
       assetUrl = Froth.config.bundling.baseUrl + '/' + filename
       frothc._fetchedUrls[url] = assetUrl
@@ -118,7 +147,7 @@ processUrlForBundling = (url, opts={}) ->
     # Replace url with asset url (if exists).
     url = frothc._fetchedUrls[url] ? url
 
-  return url
+  return [url, deferred]
 
 # Determine whether a url should be fetched, as per
 # opts.includes and opts.excludes.

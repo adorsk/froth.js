@@ -10,12 +10,21 @@ Froth.noConflict = ->
   root.Froth = oldFroth
   return this
 
-Froth.config = {
+# <grumble>. I wish this was in coffeescript core...
+Froth.extend = (dest, objs...) ->
+  for obj in objs
+    dest[k] = v for k, v of obj
+  return dest
+
+Froth.defaultConfig = {
   bundling: {
     baseRewriteUrl: '',
     bundleDir: 'bundled_assets'
   }
 }
+
+# Initial config.
+Froth.config = Froth.extend({}, Froth.defaultConfig)
 
 # Include CSS Parser (from https://github.com/NV/CSSOM)
 # @TODO: inline this for min.js build.
@@ -264,20 +273,19 @@ Froth.frothJsonToJsonCss = (frothJson={}) ->
     # If there were styles, create style rule string and
     # add to running css string.
     if hasStyles
-      log.jsoncss[selector] ?= {}
-      Froth.merge(log.jsoncss[selector], styleAttrs)
+      log.jsoncss.rules[selector] ?= {}
+      Froth.extend(log.jsoncss.rules[selector], styleAttrs)
 
   # Walk the given input tree , and return a JSONCSS object.
-  log = {jsoncss: {}}
+  log = {
+    jsoncss: {
+      rules: {}, 
+      imports: {}
+    }
+  }
   Froth.df_walk(frothJson, getChildNodes, visitNode, log)
   return log.jsoncss
   
- 
-# <grumble>. I wish this was in coffeescript core...
-Froth.merge = (dest, objs...) ->
-  for obj in objs
-    dest[k] = v for k, v of obj
-  return dest
 
 ###
 Froth actions.
@@ -290,10 +298,10 @@ Froth.getStylesheet = (stylesheetId) ->
   return Froth.stylesheets[stylesheetId]
 
 # Common code for set/get.
-Froth._set_update_common = (rules, stylesheetId) ->
+Froth._set_update_common = (data, stylesheetId) ->
   stylesheet = Froth.getStylesheet(stylesheetId)
   #@ Todo: handle any rules format, not just Froth JSON.
-  jsoncss = Froth.frothJsonToJsonCss(rules)
+  jsoncss = Froth.frothJsonToJsonCss(data)
   return [stylesheet, jsoncss]
 
 
@@ -303,15 +311,15 @@ Froth._set_update_common = (rules, stylesheetId) ->
 Froth.set = (rules, stylesheetId) ->
   [stylesheet, jsoncss] = Froth._set_update_common(rules, stylesheetId)
   # Replace existing rules in the stylesheet.
-  for selector, styles of jsoncss
+  for selector, styles of jsoncss.rules
     stylesheet.rules[selector] = styles
 
 # Update rules.
 Froth.update = (rules, stylesheetId) ->
   [stylesheet, jsoncss] = Froth._set_update_common(rules, stylesheetId)
   # Update existing rules in the stylesheet.
-  for selector, styles of jsoncss
-    Froth.merge(stylesheet.rules[selector], styles)
+  for selector, styles of jsoncss.rules
+    Froth.extend(stylesheet.rules[selector], styles)
 
 # Delete rules.
 Froth.delete = ->
@@ -320,3 +328,4 @@ Froth.delete = ->
 # Clear all stylesheets.
 Froth.reset = ->
   Froth.stylesheets = {}
+  Froth.config = Froth.extend({}, Froth.defaultConfig)
