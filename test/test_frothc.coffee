@@ -135,15 +135,16 @@ describe 'frothc', ->
         for path in [this.mockPaths[0]]
           for mockAsset in this.mockAssets
             mockAssetPath = path + '/' + mockAsset
-            mockAssetFilename = mockAssetPath.replace(/.*\//, '')
+            rewrittenPath = frothc.rewriteUrl(mockAssetPath, this.rewrites)
+            uniqueFilename = frothc.uniqueFilename(rewrittenPath)
+            filePath = Froth.config.bundling.bundleDir + '/' + uniqueFilename
+
             selector = 's_' + i
             test_urls[selector] = {
-              original: mockAssetPath
-              expected: Froth.config.bundling.baseUrl + '/' + mockAssetFilename
+              original: mockAssetPath,
+              expected: Froth.config.bundling.baseUrl + '/' + uniqueFilename
             }
-            filePath = Froth.config.bundling.bundleDir + '/' + mockAssetFilename
-            filename = frothc.uniqueFilename(filePath)
-            expected_files.push(Froth.config.bundling.bundleDir + '/' + filename)
+            expected_files.push(filePath)
             i += 1
 
         test_rules = {}

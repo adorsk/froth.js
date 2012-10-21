@@ -4,28 +4,18 @@ wrench = require('wrench')
 util = require('util')
 request = require('request')
 $ = require('jquery')
+md5 = require('./md5')
 
 frothc = exports
 
 frothc._fetchedUrls = {}
 
 # Helper functions for predictably unique filenames.
-frothc.hashCode = (str) ->
-  hash = 0
-  if not str.length
-    return hash
-  else
-    for i in [0..str.length-1]
-      char = str.charCodeAt(i)
-      hash = ((hash<<5)-hash)+char
-      hash = hash & hash
-  return hash
-
 frothc.uniqueFilename = (url) ->
   filename = url.replace(/.*\//, '')
   filenameParts = filename.split('.')
-  urlHash = frothc.hashCode(url)
-  filenameParts.splice(filenameParts.length-1, urlHash 
+  urlHash = md5.hex_md5(url)
+  filenameParts.splice(filenameParts.length-1, 0, urlHash)
   return filenameParts.join('.')
 
 frothc.compile = (opts={}) ->
@@ -131,7 +121,7 @@ processUrlForBundling = (url, opts={}) ->
   deferred = $.Deferred()
 
   # Rewrite the url per the rewrite rules.
-  url = rewriteUrl(url, Froth.config.bundling.rewrites ? [])
+  url = frothc.rewriteUrl(url, Froth.config.bundling.rewrites ? [])
 
   # If we should fetch the url (per includes and excludes).
   if shouldFetchUrl(url, Froth.config.bundling)
@@ -193,7 +183,7 @@ getStreamForUrl = (url) ->
 
 # Rewrite a url based on the given rewrite rules.
 # Last matching rule will be used.
-rewriteUrl = (url, rules) ->
+frothc.rewriteUrl = (url, rules) ->
   # Loop through rules in reverse order until a match is found.
   for i in [rules.length - 1..0] by -1
     rule = rules[i]
