@@ -170,9 +170,10 @@ JsonCss.loadcss = (css) ->
 Froth.Stylesheet
 ###
 Froth.Stylesheet = class Stylesheet
-  constructor: (id, rules={}) ->
+  constructor: (id, rules={}, imports=[]) ->
     @id = id
     @rules = rules
+    @imports = imports
 
   toCss: =>
     return Froth.JsonCss.dumpcss(this)
@@ -320,6 +321,12 @@ Froth.update = (rules, stylesheetId) ->
   # Update existing rules in the stylesheet.
   for selector, styles of jsoncss.rules
     Froth.extend(stylesheet.rules[selector], styles)
+
+# Add imports.
+Froth.addImports = (imports, stylesheetId) ->
+  stylesheet = Froth.getStylesheet(stylesheetId)
+  for import_ in imports
+    stylesheet.imports.push(import_)
 
 # Delete rules.
 Froth.delete = ->

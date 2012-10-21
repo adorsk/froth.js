@@ -24,7 +24,7 @@ frothc.compile = (opts={}) ->
     'consolidateTo': 'stdout'
   }
   # Merge defaults with provided options.
-  opts = Froth.merge(default_opts, opts)
+  opts = Froth.extend(default_opts, opts)
 
   # Convert stylesheet rules from Froth JSON to JSONCSS.
   for id, stylesheet of Froth.stylesheets
@@ -78,22 +78,20 @@ frothc.bundleStylesheet = (stylesheet, opts={}) ->
   bundledStylesheet = new Froth.Stylesheet()
   bundledStylesheet.id = stylesheet.id + '__bundled'
 
-  # For each import...
+  # Process imports.
+  # @TODO: later, add handling for inlining.
   for import_ in stylesheet.imports ? []
-    # If import href matches RewriteRule...
-    if 1
-      1
-      # Get the import's path.
-      # If the import has not been bundled...
-        # Fetch the import source.
-        # Create a new stylesheet from the source.
-        # Bundle the imported stylesheet.
-      # Get the bundled import.
-      # Add the bundled stylesheet's rules to the main bundled sheet.
-    # Otherwise...
-    else
-      # Add the import to the bundled stylsheet's imports.
-      1
+    # Get the import's url.
+    url = import_.href
+    # Bundle the asset referred to by the url.
+    [processedUrl, urlDeferred] = processUrlForBundling(url, opts)
+    deferreds.push(urlDeferred)
+    # Add a copy of the import w/ the new url to the
+    # bundled sheet.
+    processedImport = Froth.extend({}, import_, {
+      href: processedUrl
+    })
+    bundledStylesheet.imports.push(processedImport)
 
   # Process urls in values.
   for selector, style of stylesheet.rules ? {}
