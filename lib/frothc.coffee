@@ -28,26 +28,24 @@ frothc.compile = (opts={}) ->
 
   deferred = $.Deferred()
 
-  # Convert stylesheets from Froth JSON to JSONCSS.
+  # Convert stylesheets to JSONCSS.
+  jsonCssObjs = []
   for id, stylesheet of Froth.stylesheets
-    jsoncss = Froth.frothJsonToJsonCss(stylesheet.rules)
-    stylesheet.rules = jsoncss.rules
-    stylesheet.imports = jsoncss.imports
+    jsonCssObjs.push(stylesheet.toJsonCss())
 
   # If bundling assets, process accordingly.
-  # if Froth.config.bundleAssets
-  if true
-    bundleDeferred = frothc.bundleAssets()
+  if Froth.config.bundling
+    bundleDeferred = frothc.bundleJsonCssObjs(jsonCssObjs)
   else
     bundleDeferred = $.Deferred()
-    bundleDeferred.resolve()
+    bundleDeferred.resolve(jsonCssObjs)
 
   # After bundling is complete...
-  bundleDeferred.done (bundledStylesheets) ->
+  bundleDeferred.done (bundledJsonCssObjs) ->
     # Compile the css documents for each stylesheet.
     cssDocs = {}
-    for id, stylesheet of bundledStylesheets
-      cssDocs[id] = stylesheet.toCss()
+    for jsonCss in bundledJsonCssObjs
+      cssDocs[jsonCss.id] = Froth.JsonCss.dumpcss(jsonCss)
 
     # Consolidate into one file if specified.
     if opts.consolidateTo
@@ -68,42 +66,41 @@ frothc.compile = (opts={}) ->
 
   return deferred
 
-# Bundle assets.
+# Bundle multiple JsonCss objects.
 # Returns a promise that resolves when all assets have been resolved and fetched.
-# Assumes stylesheet rules have been converted to 
-# flat JSONCSS.
-frothc.bundleAssets = (opts={}) ->
+# Data passed to resolve method will be JsonCss with values modified
+# to reflect bundled assets.
+frothc.bundleJsonCssObjs = (jsonCssObjs, opts={}) ->
   deferred = $.Deferred()
   deferreds = []
 
-  # Initialize set of bundled stylesheets.
-  bundledStylesheets = {}
-
-  # Bundle each stylesheet.
-  for id, stylesheet of Froth.stylesheets
-    stylesheetDeferred = frothc.bundleStylesheet(stylesheet, opts)
-    deferreds.push(stylesheetDeferred)
+  # Bundle each jsoncss object.
+  for jsonCss in jsonCssObjs
+    jsonCssDeferred = frothc.bundleJsonCss(jsonCss, opts)
+    deferreds.push(jsonCssDeferred)
 
   promise = $.when(deferreds...)
-  promise.done (results...) ->
-    for bundledStylesheet in results
-      bundledStylesheets[bundledStylesheet.id] = bundledStylesheet
-    deferred.resolve(bundledStylesheets)
+  promise.done (bundledJsonCssObjs...) ->
+    deferred.resolve(bundledJsonCssObjs)
   promise.fail ->
     deferred.reject()
   return deferred
 
-# Bundle a stylesheet.
-frothc.bundleStylesheet = (stylesheet, opts={}) ->
+# Bundle a single JsonCss object.
+frothc.bundleJsonCss = (jsonCss, opts={}) ->
   deferred = $.Deferred()
   deferreds = []
-  # Create a bundled sheet which will merge
-  # the stylesheet's imports, and the stylesheet's own rules.
-  bundledStylesheet = new Froth.Stylesheet(stylesheet.id)
+
+  # Initialize a bundled JsonCss object.
+  bundledJsonCss = {
+    id: jsonCss.id,
+    imports: [],
+    rules: {}
+  }
 
   # Process imports.
   # @TODO: later, add handling for inlining.
-  for import_ in stylesheet.imports ? []
+  for import_ in jsonCss.imports ? []
     # Get the import's url.
     url = import_.href
     # Bundle the asset referred to by the url.
@@ -114,10 +111,10 @@ frothc.bundleStylesheet = (stylesheet, opts={}) ->
     processedImport = Froth.extend({}, import_, {
       href: processedUrl
     })
-    bundledStylesheet.imports.push(processedImport)
+    bundledJsonCss.imports.push(processedImport)
 
   # Process urls in values.
-  for selector, style of stylesheet.rules ? {}
+  for selector, style of jsonCss.rules ? {}
     for attr, value of style
       if typeof value == 'string'
         style[attr] = value.replace(
@@ -129,11 +126,11 @@ frothc.bundleStylesheet = (stylesheet, opts={}) ->
             return match[1] + processedUrl + match[3]
         )
     # Save processed rule to bundled stylesheet.
-    bundledStylesheet.rules[selector] = style
+    bundledJsonCss.rules[selector] = style
 
   promise = $.when(deferreds...)
   promise.done ->
-    deferred.resolve(bundledStylesheet)
+    deferred.resolve(bundledJsonCss)
   promise.fail ->
     deferred.reject(arguments)
 

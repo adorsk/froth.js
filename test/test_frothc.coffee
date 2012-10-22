@@ -106,12 +106,12 @@ describe 'frothc', ->
 
       Froth.set(test_rules)
 
-      bundleDeferred = frothc.bundleAssets(this.defaultBundlingOpts)
-      bundleDeferred.done (bundledStylesheets) =>
-        stylesheet = bundledStylesheets[Froth.defaultStylesheetId]
-
+      stylesheet = Froth.stylesheets[Froth.defaultStylesheetId]
+      jsoncss = stylesheet.toJsonCss()
+      bundleDeferred = frothc.bundleJsonCss(jsoncss, this.defaultBundlingOpts)
+      bundleDeferred.done (bundledJsonCss) =>
         # Check that rewritten urls are as expected.
-        stylesheet.rules.should.eql(expected_rules)
+        bundledJsonCss.rules.should.eql(expected_rules)
 
         # Check that bundle includes expected files.
         actual_files = []
@@ -171,12 +171,12 @@ describe 'frothc', ->
   
       Froth.addImports(test_imports)
 
-      bundleDeferred = frothc.bundleAssets(this.defaultBundlingOpts)
-      bundleDeferred.done (bundledStylesheets) =>
-        stylesheet = bundledStylesheets[Froth.defaultStylesheetId]
-
+      stylesheet = Froth.stylesheets[Froth.defaultStylesheetId]
+      jsoncss = stylesheet.toJsonCss()
+      bundleDeferred = frothc.bundleJsonCss(jsoncss, this.defaultBundlingOpts)
+      bundleDeferred.done (bundledJsonCss) =>
         # Check that rewritten imports are as expected.
-        stylesheet.imports.should.eql(expected_imports)
+        bundledJsonCss.imports.should.eql(expected_imports)
 
         # Check that bundle includes expected files.
         actual_files = []
@@ -196,7 +196,10 @@ describe 'frothc', ->
   Compilation.
   ###
   describe '#frothc.compile', ->
+
+
     it 'should generate a CSS document', (done) ->
+      Froth.config.bundling = false
       rules = {
         '.a' : {
           'color': 'blue'
@@ -217,6 +220,7 @@ describe 'frothc', ->
       done()
 
     it 'should consolidate stylesheets', (done) ->
+      Froth.config.bundling = false
       Froth.set({
         '.a': {
           'color': 'blue'
