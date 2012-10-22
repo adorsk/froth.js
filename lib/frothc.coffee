@@ -58,15 +58,22 @@ frothc.compile = (opts={}) ->
 frothc.bundleAssets = (opts={}) ->
   deferred = $.Deferred()
   deferreds = []
-  # For each stylesheet...
+
+  # Initialize set of bundled stylesheets.
+  bundledStylesheets = {}
+
+  # Bundle each stylesheet.
   for id, stylesheet of Froth.stylesheets
-    [bundledStylesheet, deferred] = frothc.bundleStylesheet(stylesheet, opts)
-    deferreds.push(deferred)
+    stylesheetDeferred = frothc.bundleStylesheet(stylesheet, opts)
+    deferreds.push(stylesheetDeferred)
+
   promise = $.when(deferreds...)
-  promise.done ->
-    deferred.resolve(arguments)
+  promise.done (results...) ->
+    for bundledStylesheet in results
+      bundledStylesheets[bundledStylesheet.id] = bundledStylesheet
+    deferred.resolve(bundledStylesheets)
   promise.fail ->
-    deferred.reject(arguments)
+    deferred.reject()
   return deferred
 
 # Bundle a stylesheet.
@@ -75,8 +82,7 @@ frothc.bundleStylesheet = (stylesheet, opts={}) ->
   deferreds = []
   # Create a bundled sheet which will merge
   # the stylesheet's imports, and the stylesheet's own rules.
-  bundledStylesheet = new Froth.Stylesheet()
-  bundledStylesheet.id = stylesheet.id + '__bundled'
+  bundledStylesheet = new Froth.Stylesheet(stylesheet.id)
 
   # Process imports.
   # @TODO: later, add handling for inlining.
@@ -105,13 +111,16 @@ frothc.bundleStylesheet = (stylesheet, opts={}) ->
             # Wrap the url in its original 'url(...)' context.
             return match[1] + processedUrl + match[3]
         )
+    # Save processed rule to bundled stylesheet.
+    bundledStylesheet.rules[selector] = style
+
   promise = $.when(deferreds...)
   promise.done ->
-    deferred.resolve(arguments)
+    deferred.resolve(bundledStylesheet)
   promise.fail ->
     deferred.reject(arguments)
 
-  return [bundledStylesheet, deferred]
+  return deferred
 
 # Process a url for bundling.
 processUrlForBundling = (url, opts={}) ->
@@ -137,15 +146,16 @@ processUrlForBundling = (url, opts={}) ->
 
       srcStream.once 'open', (srcFd) ->
         targetStream.once 'open', (targetfd) ->
-          util.pump srcStream, targetStream, ->
-            srcStream.destroy()
-            targetStream.destroy()
-            deferred.resolve()
+          util.pump srcStream, targetStream, (error) ->
+            if error
+              deferred.reject(error)
+            else
+              deferred.resolve()
 
       onError = ->
         deferred.reject(arguments)
-      srcStream.on 'error', onError
-      targetStream.on 'error', onError
+      srcStream.once 'error', -> onError('src',url, arguments)
+      targetStream.once 'error', -> onError('target', targetPath, arguments)
 
       assetUrl = Froth.config.bundling.baseUrl + '/' + filename
       frothc._fetchedUrls[url] = assetUrl

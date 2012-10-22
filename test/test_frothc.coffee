@@ -15,17 +15,13 @@ class StringFile
 
 describe 'frothc', ->
 
-  # Reset deferreds.
-  beforeEach ->
-    this.deferreds = []
-
   # Clear stylesheets after each test.
-  afterEach ->
-    $.when(this.deferreds...).then =>
-      Froth.reset()
+  afterEach (done) ->
+    Froth.reset()
+    done()
 
   describe.skip '#frothc.compile', ->
-    it 'should generate a CSS document', ->
+    it 'should generate a CSS document', (done) ->
       rules = {
         '.a' : {
           'color': 'blue'
@@ -43,8 +39,9 @@ describe 'frothc', ->
 }
 
       """)
+      done()
 
-    it 'should consolidate stylesheets', ->
+    it 'should consolidate stylesheets', (done) ->
       Froth.set({
         '.a': {
           'color': 'blue'
@@ -71,10 +68,11 @@ describe 'frothc', ->
 }
 
       """)
+      done()
 
   describe '#frothc.bundling', ->
     # Create temporary dirs and mock assets, and setup bundling config.
-    beforeEach ->
+    beforeEach (done) ->
       this.tmpDirs = {}
       this.tmpDirs.root = '/tmp/frothc.test.' + process.pid
       this.tmpDirs.assets = this.tmpDirs.root + '/assets'
@@ -114,16 +112,15 @@ describe 'frothc', ->
         baseUrl: '/new/base',
         bundleDir: this.tmpDirs.bundle,
       })
+
+      done()
     
     # Remove temporary dirs.
-    afterEach ->
-      $.when(this.deferreds...).then =>
-        wrench.rmdirSyncRecursive(this.tmpDirs.root)
-        this.deferreds = []
+    afterEach (done) ->
+      wrench.rmdirSyncRecursive(this.tmpDirs.root)
+      done()
 
-    it.skip 'should bundle assets used in rules', ->
-      deferred = $.Deferred()
-      this.deferreds.push(deferred)
+    it 'should bundle assets used in rules', (done) ->
 
       # Set up rules w/ test assets.
       test_urls = {}
@@ -155,11 +152,10 @@ describe 'frothc', ->
         }
 
       Froth.set(test_rules)
-      bundleDeferred = frothc.bundleAssets(this.defaultBundlingOpts)
 
-      bundlePromise = $.when(bundleDeferred)
-      bundlePromise.done =>
-        stylesheet = Froth.stylesheets[Froth.defaultStylesheetId]
+      bundleDeferred = frothc.bundleAssets(this.defaultBundlingOpts)
+      bundleDeferred.done (bundledStylesheets) =>
+        stylesheet = bundledStylesheets[Froth.defaultStylesheetId]
 
         # Check that rewritten urls are as expected.
         stylesheet.rules.should.eql(expected_rules)
@@ -172,15 +168,13 @@ describe 'frothc', ->
             actual_files.push(item)
 
         actual_files.sort().should.eql(expected_files.sort())
-        deferred.resolve()
+        done()
 
-      bundlePromise.fail =>
-        deferred.resolve()
+      bundleDeferred.fail =>
+        done()
         throw JSON.stringify(arguments)
 
-    it 'should bundle assets used in imports', ->
-      deferred = $.Deferred()
-      this.deferreds.push(deferred)
+    it 'should bundle assets used in imports', (done) ->
       
       # Setup imports.
       this.mockImports = {
@@ -221,13 +215,12 @@ describe 'frothc', ->
         expected_imports.push({
           href: urls.expected
         })
-
+  
       Froth.addImports(test_imports)
-      bundleDeferred = frothc.bundleAssets(this.defaultBundlingOpts)
 
-      bundlePromise = $.when(bundleDeferred)
-      bundlePromise.done =>
-        stylesheet = Froth.stylesheets[Froth.defaultStylesheetId]
+      bundleDeferred = frothc.bundleAssets(this.defaultBundlingOpts)
+      bundleDeferred.done (bundledStylesheets) =>
+        stylesheet = bundledStylesheets[Froth.defaultStylesheetId]
 
         # Check that rewritten imports are as expected.
         stylesheet.imports.should.eql(expected_imports)
@@ -240,8 +233,8 @@ describe 'frothc', ->
             actual_files.push(item)
 
         actual_files.sort().should.eql(expected_files.sort())
-        deferred.resolve()
+        done()
 
-      bundlePromise.fail =>
-        deferred.resolve()
+      bundleDeferred.fail =>
+        done()
         throw JSON.stringify(arguments)
