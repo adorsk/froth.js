@@ -26,30 +26,47 @@ frothc.compile = (opts={}) ->
   # Merge defaults with provided options.
   opts = Froth.extend(default_opts, opts)
 
-  # Convert stylesheet rules from Froth JSON to JSONCSS.
+  deferred = $.Deferred()
+
+  # Convert stylesheets from Froth JSON to JSONCSS.
   for id, stylesheet of Froth.stylesheets
-    stylesheet.rules = Froth.frothJsonToJsonCss(stylesheet.rules)
+    jsoncss = Froth.frothJsonToJsonCss(stylesheet.rules)
+    stylesheet.rules = jsoncss.rules
+    stylesheet.imports = jsoncss.imports
 
   # If bundling assets, process accordingly.
   # if Froth.config.bundleAssets
   if true
-    bundleAssets()
+    bundleDeferred = frothc.bundleAssets()
+  else
+    bundleDeferred = $.Deferred()
+    bundleDeferred.resolve()
 
-  # Compile the css documents for each stylesheet.
-  cssDocs = {}
-  for id, stylesheet of Froth.stylesheets
-    cssDocs[id] = stylesheet.toCss()
+  # After bundling is complete...
+  bundleDeferred.done (bundledStylesheets) ->
+    # Compile the css documents for each stylesheet.
+    cssDocs = {}
+    for id, stylesheet of bundledStylesheets
+      cssDocs[id] = stylesheet.toCss()
 
-  # Consolidate into one file if specified.
-  if opts.consolidateTo
-    consolidatedDoc = (cssDoc for id, cssDoc of cssDocs).join("\n")
-    if opts.consolidateTo == 'stdout'
-      process.stdout.write(consolidatedDoc)
-    else if typeof opts.consolidateTo == 'string'
-      # @TODO: open file here.
-      console.log('foo')
-    else if opts.consolidateTo.write
-      opts.consolidateTo.write(consolidatedDoc)
+    # Consolidate into one file if specified.
+    if opts.consolidateTo
+      consolidatedDoc = (cssDoc for id, cssDoc of cssDocs).join("\n")
+      # Write to stdout.
+      if opts.consolidateTo == 'stdout'
+        process.stdout.write(consolidatedDoc)
+      # Write to file for given filename.
+      else if typeof opts.consolidateTo == 'string'
+        # @TODO: open file here.
+        console.log('foo')
+      # Write to stream.
+      else if opts.consolidateTo.write
+        opts.consolidateTo.write(consolidatedDoc)
+
+    # Resolve deferred.
+    deferred.resolve()
+
+  return deferred
 
 # Bundle assets.
 # Returns a promise that resolves when all assets have been resolved and fetched.

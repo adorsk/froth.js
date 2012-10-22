@@ -17,59 +17,12 @@ describe 'frothc', ->
 
   # Clear stylesheets after each test.
   afterEach (done) ->
-    Froth.reset()
+    Froth.resetStylesheets()
     done()
 
-  describe.skip '#frothc.compile', ->
-    it 'should generate a CSS document', (done) ->
-      rules = {
-        '.a' : {
-          'color': 'blue'
-        }
-      }
-      Froth.set(rules)
-      stylesheet = Froth.getStylesheet()
-      strFile = new StringFile()
-      frothc.compile({
-        consolidateTo: strFile
-      })
-      strFile.value.should.eql("""
-.a {
-  color: blue
-}
-
-      """)
-      done()
-
-    it 'should consolidate stylesheets', (done) ->
-      Froth.set({
-        '.a': {
-          'color': 'blue'
-        }
-      }, 'stylesheet1')
-
-      Froth.set({
-        '.b': {
-          'color': 'red'
-        }
-      }, 'stylesheet2')
-
-      strFile = new StringFile()
-      frothc.compile({
-        consolidateTo: strFile
-      })
-      strFile.value.should.eql("""
-.a {
-  color: blue
-}
-
-.b {
-  color: red
-}
-
-      """)
-      done()
-
+  ###
+  Bundling.
+  ###
   describe '#frothc.bundling', ->
     # Create temporary dirs and mock assets, and setup bundling config.
     beforeEach (done) ->
@@ -238,3 +191,56 @@ describe 'frothc', ->
       bundleDeferred.fail =>
         done()
         throw JSON.stringify(arguments)
+
+  ###
+  Compilation.
+  ###
+  describe '#frothc.compile', ->
+    it 'should generate a CSS document', (done) ->
+      rules = {
+        '.a' : {
+          'color': 'blue'
+        }
+      }
+      Froth.set(rules)
+      stylesheet = Froth.getStylesheet()
+      strFile = new StringFile()
+      frothc.compile({
+        consolidateTo: strFile
+      })
+      strFile.value.should.eql("""
+.a {
+  color: blue;
+}
+
+      """)
+      done()
+
+    it 'should consolidate stylesheets', (done) ->
+      Froth.set({
+        '.a': {
+          'color': 'blue'
+        }
+      }, 'stylesheet1')
+
+      Froth.set({
+        '.b': {
+          'color': 'red'
+        }
+      }, 'stylesheet2')
+
+      strFile = new StringFile()
+      frothc.compile({
+        consolidateTo: strFile
+      })
+      strFile.value.should.eql("""
+.a {
+  color: blue;
+}
+
+.b {
+  color: red;
+}
+
+      """)
+      done()

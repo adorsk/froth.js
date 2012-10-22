@@ -114,7 +114,6 @@ JsonCss.formatCssImport = (import_, opts={}) ->
 
 # Convert a JSONCSS into a CSS string, using non-recursive traversal.
 JsonCss.dumpcss = (jsonCss) ->
-
   # Initialize CSS String.
   cssStr = ''
 
@@ -126,7 +125,7 @@ JsonCss.dumpcss = (jsonCss) ->
   # Handle rules.
   if jsonCss.rules
     traversalLog = {'cssStr': ''}
-    rulesStr = JsonCss.traverse(
+    JsonCss.traverse(
       jsonCss.rules,
       JsonCss.getChildren,
       JsonCss.visit,
@@ -333,6 +332,8 @@ Froth.delete = ->
   console.log('delete')
 
 # Clear all stylesheets.
-Froth.reset = ->
+Froth.resetStylesheets = ->
   Froth.stylesheets = {}
+
+Froth.resetConfig = ->
   Froth.config = Froth.extend({}, Froth.defaultConfig)
