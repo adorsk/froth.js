@@ -51,6 +51,8 @@ Frothc.compile = (opts={}) ->
 
   # If bundling assets, process accordingly.
   if Frothc.config.bundling
+    # Make the bundle dir.
+    wrench.mkdirSyncRecursive(Frothc.config.bundling.bundleDir)
     bundleDeferred = Frothc.bundleJsonCssObjs(jsonCssObjs)
   else
     bundleDeferred = $.Deferred()
@@ -72,7 +74,6 @@ Frothc.compile = (opts={}) ->
       # Write to file for given filename.
       else if typeof opts.consolidateTo == 'string'
         # @TODO: open file here.
-        console.log('foo')
       # Write to stream.
       else if opts.consolidateTo.write
         opts.consolidateTo.write(consolidatedDoc)
@@ -179,16 +180,22 @@ processUrlForBundling = (url, opts={}) ->
       targetPath = Frothc.config.bundling.bundleDir + '/' + filename
       targetStream = fs.createWriteStream(targetPath)
 
+      onError = ->
+        console.error("Unable to bundle asset '%s', error: '%j'", url, arguments)
+        if Frothc.config.bundling.failOnError?
+          console.error('yo')
+          deferred.reject(arguments)
+        else
+          deferred.resolve()
+
       srcStream.once 'open', (srcFd) ->
         targetStream.once 'open', (targetfd) ->
           util.pump srcStream, targetStream, (error) ->
             if error
-              deferred.reject(error)
+              onError()
             else
               deferred.resolve()
 
-      onError = ->
-        deferred.reject(arguments)
       srcStream.once 'error', -> onError('src',url, arguments)
       targetStream.once 'error', -> onError('target', targetPath, arguments)
 
