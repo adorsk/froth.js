@@ -49,6 +49,7 @@ Frothc.compile = (opts={}) ->
     cssDocs = {}
     for jsonCss in bundledJsonCssObjs
       cssDocs[jsonCss.id] = Froth.JsonCss.dumpcss(jsonCss)
+      console.log(cssDocs)
 
     # Consolidate into one file if specified.
     if opts.consolidateTo
