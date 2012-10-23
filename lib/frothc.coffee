@@ -38,6 +38,7 @@ Frothc.compile = (opts={}) ->
 
   # If bundling assets, process accordingly.
   if Frothc.ctx.config.bundling
+    console.log('bundilng')
     bundleDeferred = Frothc.bundleJsonCssObjs(jsonCssObjs)
   else
     bundleDeferred = $.Deferred()
@@ -45,11 +46,11 @@ Frothc.compile = (opts={}) ->
 
   # After bundling is complete...
   bundleDeferred.done (bundledJsonCssObjs) ->
+    console.log('here', bundledJsonCssObjs)
     # Compile the css documents for each sheet.
     cssDocs = {}
     for jsonCss in bundledJsonCssObjs
       cssDocs[jsonCss.id] = Froth.JsonCss.dumpcss(jsonCss)
-      console.log(cssDocs)
 
     # Consolidate into one file if specified.
     if opts.consolidateTo
@@ -67,6 +68,9 @@ Frothc.compile = (opts={}) ->
 
     # Resolve deferred.
     deferred.resolve()
+ 
+  bundleDeferred.fail () ->
+    console.log('failed', arguments)
 
   return deferred
 
