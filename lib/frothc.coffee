@@ -10,6 +10,19 @@ Frothc = exports
 
 Frothc._fetchedUrls = {}
 
+# Set default config.
+Frothc.defaultConfig = {
+  bundling: {
+    baseRewriteUrl: '',
+    bundleDir: 'bundled_assets'
+  }
+}
+Frothc.resetConfig = () ->
+  Frothc.config = Froth.extend({}, Frothc.defaultConfig)
+
+Frothc.resetConfig()
+
+
 # Set local Froth as the default context.
 Frothc.ctx = Froth
 
@@ -37,8 +50,7 @@ Frothc.compile = (opts={}) ->
     jsonCssObjs.push(sheet.toJsonCss())
 
   # If bundling assets, process accordingly.
-  if Frothc.ctx.config.bundling
-    console.log('bundilng')
+  if Frothc.config.bundling
     bundleDeferred = Frothc.bundleJsonCssObjs(jsonCssObjs)
   else
     bundleDeferred = $.Deferred()
@@ -46,7 +58,6 @@ Frothc.compile = (opts={}) ->
 
   # After bundling is complete...
   bundleDeferred.done (bundledJsonCssObjs) ->
-    console.log('here', bundledJsonCssObjs)
     # Compile the css documents for each sheet.
     cssDocs = {}
     for jsonCss in bundledJsonCssObjs
@@ -152,10 +163,10 @@ processUrlForBundling = (url, opts={}) ->
   deferred = $.Deferred()
 
   # Rewrite the url per the rewrite rules.
-  url = Froth.rewriteUrl(url, Frothc.ctx.config.bundling.rewrites ? [])
+  url = Froth.rewriteUrl(url, Frothc.config.bundling.rewrites ? [])
 
   # If we should fetch the url (per includes and excludes).
-  if shouldFetchUrl(url, Frothc.ctx.config.bundling)
+  if shouldFetchUrl(url, Frothc.config.bundling)
     # If the url has not been fetched, fetch it and write to the
     # the target dir.
     if not Frothc._fetchedUrls[url]
@@ -165,7 +176,7 @@ processUrlForBundling = (url, opts={}) ->
       
       # Fetch the url.
       srcStream = getStreamForUrl(url)
-      targetPath = Frothc.ctx.config.bundling.bundleDir + '/' + filename
+      targetPath = Frothc.config.bundling.bundleDir + '/' + filename
       targetStream = fs.createWriteStream(targetPath)
 
       srcStream.once 'open', (srcFd) ->
@@ -181,7 +192,7 @@ processUrlForBundling = (url, opts={}) ->
       srcStream.once 'error', -> onError('src',url, arguments)
       targetStream.once 'error', -> onError('target', targetPath, arguments)
 
-      assetUrl = Frothc.ctx.config.bundling.baseUrl + '/' + filename
+      assetUrl = Frothc.config.bundling.baseUrl + '/' + filename
       Frothc._fetchedUrls[url] = assetUrl
     
     # Replace url with asset url (if exists).

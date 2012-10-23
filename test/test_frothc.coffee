@@ -61,7 +61,7 @@ describe 'Frothc', ->
         rewrites: this.rewrites
       }
 
-      Froth.config.bundling = Froth.extend({}, this.defaultBundlingConfig, {
+      Frothc.config.bundling = Froth.extend({}, this.defaultBundlingConfig, {
         baseUrl: '/new/base',
         bundleDir: this.tmpDirs.bundle,
       })
@@ -84,12 +84,12 @@ describe 'Frothc', ->
           mockAssetPath = path + '/' + mockAsset
           rewrittenPath = Froth.rewriteUrl(mockAssetPath, this.rewrites)
           uniqueFilename = Frothc.uniqueFilename(rewrittenPath)
-          filePath = Froth.config.bundling.bundleDir + '/' + uniqueFilename
+          filePath = Frothc.config.bundling.bundleDir + '/' + uniqueFilename
 
           selector = 's_' + i
           test_urls[selector] = {
             original: mockAssetPath,
-            expected: Froth.config.bundling.baseUrl + '/' + uniqueFilename
+            expected: Frothc.config.bundling.baseUrl + '/' + uniqueFilename
           }
           expected_files.push(filePath)
           i += 1
@@ -150,11 +150,11 @@ describe 'Frothc', ->
           mockAssetPath = path + '/' + mockAsset
           rewrittenPath = Froth.rewriteUrl(mockAssetPath, this.rewrites)
           uniqueFilename = Frothc.uniqueFilename(rewrittenPath)
-          filePath = Froth.config.bundling.bundleDir + '/' + uniqueFilename
+          filePath = Frothc.config.bundling.bundleDir + '/' + uniqueFilename
 
           test_urls[mockAssetPath] = {
             original: mockAssetPath,
-            expected: Froth.config.bundling.baseUrl + '/' + uniqueFilename
+            expected: Frothc.config.bundling.baseUrl + '/' + uniqueFilename
           }
           expected_files.push(filePath)
           i += 1
@@ -199,7 +199,7 @@ describe 'Frothc', ->
 
 
     it 'should generate a CSS document', (done) ->
-      Froth.config.bundling = false
+      Frothc.config.bundling = false
       rules = {
         '.a' : {
           'color': 'blue'
@@ -220,7 +220,7 @@ describe 'Frothc', ->
       done()
 
     it 'should consolidate sheets', (done) ->
-      Froth.config.bundling = false
+      Frothc.config.bundling = false
       Froth.set({
         '.a': {
           'color': 'blue'

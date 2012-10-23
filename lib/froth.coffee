@@ -17,10 +17,6 @@ Froth.extend = (dest, objs...) ->
   return dest
 
 Froth.defaultConfig = {
-  bundling: {
-    baseRewriteUrl: '',
-    bundleDir: 'bundled_assets'
-  }
 }
 
 # Initial config.
