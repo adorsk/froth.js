@@ -3,31 +3,31 @@ Froth = require('../lib/froth.coffee')
 
 describe 'Froth Actions', ->
 
-  # Clear stylesheets after each test.
+  # Clear sheets after each test.
   afterEach ->
-    Froth.reset()
+    Froth.resetSheets()
 
   describe '#Froth.set', ->
-    it 'should set rules in the default stylesheet', ->
+    it 'should set rules in the default sheet', ->
       rules = {
         '.a' : {
           'color': 'blue'
         }
       }
       Froth.set(rules)
-      stylesheet = Froth.getStylesheet()
-      stylesheet.rules.should.eql(rules)
+      sheet = Froth.getSheet()
+      sheet.rules.should.eql(rules)
 
-    it 'should set rules in the given stylesheet', ->
-      stylesheetId = 'stylesheet1'
+    it 'should set rules in the given sheet', ->
+      sheetId = 'sheet1'
       rules = {
         '.a' : {
           'color': 'blue'
         }
       }
-      Froth.set(rules, stylesheetId)
-      stylesheet = Froth.getStylesheet(stylesheetId)
-      stylesheet.rules.should.eql(rules)
+      Froth.set(rules, sheetId)
+      sheet = Froth.getSheet(sheetId)
+      sheet.rules.should.eql(rules)
 
     it 'should override rules if they exist', ->
       rules_0 = {
@@ -46,8 +46,8 @@ describe 'Froth Actions', ->
         }
       }
       Froth.set(rules_1)
-      stylesheet = Froth.getStylesheet()
-      stylesheet.rules.should.eql({
+      sheet = Froth.getSheet()
+      sheet.rules.should.eql({
         '.a' : {
           'color': 'orange'
         },
@@ -75,8 +75,8 @@ describe 'Froth Actions', ->
         }
       }
       Froth.update(rules_1)
-      stylesheet = Froth.getStylesheet()
-      stylesheet.rules.should.eql({
+      sheet = Froth.getSheet()
+      sheet.rules.should.eql({
         '.a' : {
           'color': 'green',
           'width': 50,
@@ -86,5 +86,40 @@ describe 'Froth Actions', ->
       })
 
   describe '#Froth.delete', ->
-    it 'should remove rules in the default stylesheet'
-    it 'should remove rules in the given stylesheet'
+    it 'should remove rules in the default sheet'
+    it 'should remove rules in the given sheet'
+
+  describe '#Froth.addModule', ->
+    it 'should add a module', ->
+      frothMod = {
+        config: {
+          baseUrl: '/test/baseUrl/'
+        },
+        sheets: {
+          'test1': {
+            rules: {
+              '.relative': {
+                'background-image': 'url("relative.png")'
+              }
+              '.absolute': {
+                'background-image': 'url("http://foo.com/absolute.png")'
+              }
+            }
+          }
+        }
+      }
+
+      Froth.addModule(frothMod)
+      Froth.sheets['test1'].toJsonCss().should.eql({
+        id: 'test1',
+        rules: {
+          '.relative': {
+            'background-image': 'url("/test/baseUrl/relative.png")'
+          },
+          '.absolute': {
+            'background-image': 'url("http://foo.com/absolute.png")'
+          },
+        },
+        imports: [],
+      })
+    

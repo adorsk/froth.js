@@ -15,9 +15,9 @@ class StringFile
 
 describe 'frothc', ->
 
-  # Clear stylesheets after each test.
+  # Clear sheets after each test.
   afterEach (done) ->
-    Froth.resetStylesheets()
+    Froth.resetSheets()
     done()
 
   ###
@@ -106,8 +106,8 @@ describe 'frothc', ->
 
       Froth.set(test_rules)
 
-      stylesheet = Froth.stylesheets[Froth.defaultStylesheetId]
-      jsoncss = stylesheet.toJsonCss()
+      sheet = Froth.sheets[Froth.defaultSheetId]
+      jsoncss = sheet.toJsonCss()
       bundleDeferred = frothc.bundleJsonCss(jsoncss, this.defaultBundlingOpts)
       bundleDeferred.done (bundledJsonCss) =>
         # Check that rewritten urls are as expected.
@@ -171,8 +171,8 @@ describe 'frothc', ->
   
       Froth.addImports(test_imports)
 
-      stylesheet = Froth.stylesheets[Froth.defaultStylesheetId]
-      jsoncss = stylesheet.toJsonCss()
+      sheet = Froth.sheets[Froth.defaultSheetId]
+      jsoncss = sheet.toJsonCss()
       bundleDeferred = frothc.bundleJsonCss(jsoncss, this.defaultBundlingOpts)
       bundleDeferred.done (bundledJsonCss) =>
         # Check that rewritten imports are as expected.
@@ -206,7 +206,7 @@ describe 'frothc', ->
         }
       }
       Froth.set(rules)
-      stylesheet = Froth.getStylesheet()
+      sheet = Froth.getSheet()
       strFile = new StringFile()
       frothc.compile({
         consolidateTo: strFile
@@ -219,19 +219,19 @@ describe 'frothc', ->
       """)
       done()
 
-    it 'should consolidate stylesheets', (done) ->
+    it 'should consolidate sheets', (done) ->
       Froth.config.bundling = false
       Froth.set({
         '.a': {
           'color': 'blue'
         }
-      }, 'stylesheet1')
+      }, 'sheet1')
 
       Froth.set({
         '.b': {
           'color': 'red'
         }
-      }, 'stylesheet2')
+      }, 'sheet2')
 
       strFile = new StringFile()
       frothc.compile({
