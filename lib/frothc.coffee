@@ -14,7 +14,8 @@ Frothc._fetchedUrls = {}
 Frothc.defaultConfig = {
   bundling: {
     baseRewriteUrl: '',
-    bundleDir: 'bundled_assets'
+    bundleDir: 'bundled_assets',
+    baseUrl: 'bundled_assets'
   }
 }
 Frothc.resetConfig = () ->
@@ -183,7 +184,6 @@ processUrlForBundling = (url, opts={}) ->
       onError = ->
         console.error("Unable to bundle asset '%s', error: '%j'", url, arguments)
         if Frothc.config.bundling.failOnError?
-          console.error('yo')
           deferred.reject(arguments)
         else
           deferred.resolve()
