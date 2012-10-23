@@ -448,8 +448,9 @@ Froth.addModule = (frothMod) ->
   if frothMod.config?.baseUrl?
     baseUrlRewriteRule = [
       /^[^(http:\/\/|\/)](.*)/,
-      (match) -> 
-        return frothMod.config.baseUrl + match
+      (match) ->
+        rewrittenUrl = frothMod.config.baseUrl + match
+        return rewrittenUrl
     ]
     rewriteRules.push(baseUrlRewriteRule)
   for sheetId, jsoncss of jsoncssSheets
