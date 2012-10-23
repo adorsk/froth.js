@@ -110,7 +110,6 @@ JsonCss.formatCssImport = (import_, opts={}) ->
 
 # Convert a JSONCSS into a CSS string, using non-recursive traversal.
 JsonCss.dumpcss = (jsonCss) ->
-
   # Initialize CSS String.
   cssStr = ''
 
@@ -122,7 +121,7 @@ JsonCss.dumpcss = (jsonCss) ->
   # Handle rules.
   if jsonCss.rules
     traversalLog = {'cssStr': ''}
-    rulesStr = JsonCss.traverse(
+    JsonCss.traverse(
       jsonCss.rules,
       JsonCss.getChildren,
       JsonCss.visit,
@@ -166,12 +165,16 @@ JsonCss.loadcss = (css) ->
 Froth.Stylesheet
 ###
 Froth.Stylesheet = class Stylesheet
-  constructor: (id, rules={}) ->
+  constructor: (id, rules={}, imports=[]) ->
     @id = id
     @rules = rules
+    @imports = imports
 
   toCss: =>
-    return Froth.JsonCss.dumpcss(this)
+    return Froth.JsonCss.dumpcss(this.toJsonCss())
+
+  toJsonCss: =>
+    return Froth.frothJsonToJsonCss(this)
 
 Froth.defaultStylesheetId = '_froth'
 Froth.stylesheets = {}
@@ -225,10 +228,10 @@ Froth.df_walk = (tree, getChildNodesFn, visitFn, log) ->
 
   return log
 
-# Convert Froth JSON to JSON CSS.
+# Convert Froth JSON rules to JSON CSS rules.
 # Froth JSON is a superset of Froth JSONCSS, but it allows nesting and 
-# a few shorthand conveniences like '&'.
-Froth.frothJsonToJsonCss = (frothJson={}) ->
+# a few shorthand conveniences like '&' in rules.
+Froth.frothJsonRulesToJsonCssRules = (frothJsonRules={}) ->
 
   # Function to get child nodes.
   getChildNodes = (node) ->
@@ -269,19 +272,28 @@ Froth.frothJsonToJsonCss = (frothJson={}) ->
     # If there were styles, create style rule string and
     # add to running css string.
     if hasStyles
-      log.jsoncss.rules[selector] ?= {}
-      Froth.extend(log.jsoncss.rules[selector], styleAttrs)
+      log.rules[selector] ?= {}
+      Froth.extend(log.rules[selector], styleAttrs)
 
   # Walk the given input tree , and return a JSONCSS object.
   log = {
-    jsoncss: {
-      rules: {}, 
-      imports: {}
-    }
+    rules: {}
   }
-  Froth.df_walk(frothJson, getChildNodes, visitNode, log)
-  return log.jsoncss
+  Froth.df_walk(frothJsonRules, getChildNodes, visitNode, log)
+  return log.rules
   
+# Convert Froth JSON to JSON CSS.
+Froth.frothJsonToJsonCss = (frothJson={}) ->
+    # Initialize jsonCss object.
+    jsonCss = {
+      id: frothJson.id,
+      imports: (import_ for import_ in frothJson.imports ? [])
+    }
+
+    # Convert rules.
+    jsonCss.rules = Froth.frothJsonRulesToJsonCssRules(frothJson.rules)
+
+    return jsonCss
 
 ###
 Froth actions.
@@ -292,38 +304,48 @@ Froth.getStylesheet = (stylesheetId) ->
   # Create stylesheet if it does not exist.
   Froth.stylesheets[stylesheetId] ?= new Froth.Stylesheet(stylesheetId)
   return Froth.stylesheets[stylesheetId]
-
+#
 # Common code for set/get.
-Froth._set_update_common = (data, stylesheetId) ->
+#
+# @TODO: change this to be set/get for just rules.
+Froth._set_update_common = (rules, stylesheetId) ->
   stylesheet = Froth.getStylesheet(stylesheetId)
   #@ Todo: handle any rules format, not just Froth JSON.
-  jsoncss = Froth.frothJsonToJsonCss(data)
-  return [stylesheet, jsoncss]
+  jsonCssRules = Froth.frothJsonRulesToJsonCssRules(rules)
+  return [stylesheet, jsonCssRules]
 
 
 # Set rules.
 # @TODO: implement parent context, for appending to a given parent.
 # Or perhaps make that a method of the Rule.
 Froth.set = (rules, stylesheetId) ->
-  [stylesheet, jsoncss] = Froth._set_update_common(rules, stylesheetId)
+  [stylesheet, jsonCssRules] = Froth._set_update_common(rules, stylesheetId)
   # Replace existing rules in the stylesheet.
-  for selector, styles of jsoncss.rules
+  for selector, styles of jsonCssRules
     stylesheet.rules[selector] = styles
 
 # Update rules.
 Froth.update = (rules, stylesheetId) ->
-  [stylesheet, jsoncss] = Froth._set_update_common(rules, stylesheetId)
+  [stylesheet, jsonCssRules] = Froth._set_update_common(rules, stylesheetId)
   # Update existing rules in the stylesheet.
-  for selector, styles of jsoncss.rules
+  for selector, styles of jsonCssRules
     Froth.extend(stylesheet.rules[selector], styles)
+
+# Add imports.
+Froth.addImports = (imports, stylesheetId) ->
+  stylesheet = Froth.getStylesheet(stylesheetId)
+  for import_ in imports
+    stylesheet.imports.push(import_)
 
 # Delete rules.
 Froth.delete = ->
   console.log('delete')
 
 # Clear all stylesheets.
-Froth.reset = ->
+Froth.resetStylesheets = ->
   Froth.stylesheets = {}
+
+Froth.resetConfig = ->
   Froth.config = Froth.extend({}, Froth.defaultConfig)
 
 # Include CSS Parser (from https://github.com/NV/CSSOM)

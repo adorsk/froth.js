@@ -2,3 +2,9 @@
 
 * server-side compilation: asset bundling, inlining.
   bundling: work on inling @imports, handling recursive bundling.  See notes on bundling.
+
+* Clean up the distinction between frothjson and jsoncss.  One allows nesting, and other stuff.  The other is flat, and has normalized selectors. FrothyJsonCss? Froth.Stylesheet is really a FrothyJsonCss object w/ some methods.
+
+* Clean up semantics of set, update, addImports, etc. Need to be clearer what I'm operating on. Rules or json css, etc.  Maybe something more like:
+Froth.sheets.foo.rules = {}.  Or rules.update({}). Extend, etc.  Yet also keep Froth itself as a sheet.  E.g. Froth.rules.extend, Froth.imports.push. Froth.toCss(). Etc.
+
