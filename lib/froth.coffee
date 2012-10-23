@@ -26,10 +26,6 @@ Froth.defaultConfig = {
 # Initial config.
 Froth.config = Froth.extend({}, Froth.defaultConfig)
 
-# Include CSS Parser (from https://github.com/NV/CSSOM)
-# @TODO: inline this for min.js build.
-cssom = require('./contrib/cssom.min.js')
-
 ###
 Froth.JSONCSS
 ###
@@ -143,7 +139,7 @@ JsonCss.loadcss = (css) ->
     rules: {}
   }
 
-  cssom_json = cssom.parse(css)
+  cssom_json = Froth.cssom.parse(css)
 
   for key, rule of cssom_json.cssRules
     # Handle import rules.
@@ -329,3 +325,7 @@ Froth.delete = ->
 Froth.reset = ->
   Froth.stylesheets = {}
   Froth.config = Froth.extend({}, Froth.defaultConfig)
+
+# Include CSS Parser (from https://github.com/NV/CSSOM)
+Froth.cssom = require('./contrib/cssom.min.js')
+
