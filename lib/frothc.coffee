@@ -114,6 +114,8 @@ frothc.bundleJsonCss = (jsonCss, opts={}) ->
     bundledJsonCss.imports.push(processedImport)
 
   # Process urls in values.
+  #@TODO: later, combine this w/ Froth.rewriteWrappedUrl?
+  # generic processWrappedUrl func that takes a callable?
   for selector, style of jsonCss.rules ? {}
     for attr, value of style
       if typeof value == 'string'
@@ -142,7 +144,7 @@ processUrlForBundling = (url, opts={}) ->
   deferred = $.Deferred()
 
   # Rewrite the url per the rewrite rules.
-  url = frothc.rewriteUrl(url, Froth.config.bundling.rewrites ? [])
+  url = Froth.rewriteUrl(url, Froth.config.bundling.rewrites ? [])
 
   # If we should fetch the url (per includes and excludes).
   if shouldFetchUrl(url, Froth.config.bundling)
@@ -202,16 +204,3 @@ getStreamForUrl = (url) ->
     return request(url)
   else
     return fs.createReadStream(url)
-
-# Rewrite a url based on the given rewrite rules.
-# Last matching rule will be used.
-frothc.rewriteUrl = (url, rules) ->
-  # Loop through rules in reverse order until a match is found.
-  for i in [rules.length - 1..0] by -1
-    rule = rules[i]
-    rewrittenUrl = url.replace(rule[0], rule[1])
-    # If rewritten url differs, we have matched and shoul return.
-    if rewrittenUrl != url
-      return rewrittenUrl
-  # Return the original url if no match was found.
-  return url

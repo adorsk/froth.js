@@ -161,6 +161,43 @@ JsonCss.loadcss = (css) ->
 
   return jsoncss
 
+# Rewrite urls in a JSONCSS object, 
+# using a given set of rewrite rules.
+JsonCss.rewriteUrls = (jsoncss, rewriteRules) ->
+  JsonCss.rewriteImportUrls(jsoncss, rewriteRules)
+  JsonCss.rewriteRuleUrls(jsoncss, rewriteRules)
+
+JsonCss.rewriteImportUrls = (jsoncss, rewriteRules)->
+  for import_ in jsoncss.imports ? []
+    import_.href = Froth.rewriteWrappedUrl(import_.href, (url) ->
+      return Froth.rewriteUrl(import_.href, rewriteRules)
+    )
+
+JsonCss.rewriteRuleUrls = (jsoncss, rewriteRules) ->
+  for selector, style of jsonCss.rules ? {}
+    for attr, value of style
+      if typeof value == 'string'
+        style[attr] = Froth.rewriteWrappedUrl(value, rewriteUrls)
+
+# Rewrite a wrapped url (e.g. a "url(http://foo") string).
+Froth.rewriteWrappedUrl = (url, rules) ->
+  return url.replace(Froth.urlRe, (match...) ->
+    url = match[2]
+    rewrittenUrl = froth.rewriteUrl(url, rules)
+    return match[1] + rewrittenUrl + match[3]
+  )
+
+# Rewrite a url based on the given rewrite rules.
+# Last matching rule will be used.
+Froth.rewriteUrl = (url, rules) ->
+  # Loop through rules in reverse order until a match is found.
+  for i in [rules.length - 1..0] by -1
+    rule = rules[i]
+    rewrittenUrl = url.replace(rule[0], rule[1])
+    # If rewritten url differs, we have matched and should return.
+    if rewrittenUrl != url
+      return rewrittenUrl
+
 ###
 Froth.Stylesheet
 ###
@@ -174,13 +211,15 @@ Froth.Stylesheet = class Stylesheet
     return Froth.JsonCss.dumpcss(this.toJsonCss())
 
   toJsonCss: =>
-    return Froth.frothJsonToJsonCss(this)
+    return Froth.toJsonCss(this)
 
 Froth.defaultStylesheetId = '_froth'
 Froth.stylesheets = {}
 Froth.stylesheets[Froth.defaultStylesheetId] = new Froth.Stylesheet(
   Froth.defaultStylesheetId
 )
+
+Froth.urlRe = /(url\(["'])(.*?)(["']\))/g
 
 
 ###
@@ -227,6 +266,17 @@ Froth.df_walk = (tree, getChildNodesFn, visitFn, log) ->
     visitFn(node, log)
 
   return log
+
+
+# Convert generic (frothJson or css text) to JSONCSS.
+Froth.toJsonCss = (data) ->
+  # Handle css text.
+  if typeof data == 'string'
+    return Froth.JsonCss.loadcss(data)
+
+  # Handle frothJson.
+  else if typeof data == 'object'
+    return Froth.frothJsonToJsonCss(data)
 
 # Convert Froth JSON rules to JSON CSS rules.
 # Froth JSON is a superset of Froth JSONCSS, but it allows nesting and 
@@ -310,10 +360,19 @@ Froth.getStylesheet = (stylesheetId) ->
 # @TODO: change this to be set/get for just rules.
 Froth._set_update_common = (rules, stylesheetId) ->
   stylesheet = Froth.getStylesheet(stylesheetId)
-  #@ Todo: handle any rules format, not just Froth JSON.
-  jsonCssRules = Froth.frothJsonRulesToJsonCssRules(rules)
-  return [stylesheet, jsonCssRules]
 
+  jsonCssRules = {}
+
+  # Handle CSS text.
+  if typeof rules == 'string'
+    jsonCss = JsonCss.loadcss(rules)
+    jsonCssRules = jsonCss.rules
+
+  # Handle FrothJson rules.
+  else if typeof rules == 'object'
+    jsonCssRules = Froth.frothJsonRulesToJsonCssRules(rules)
+
+  return [stylesheet, jsonCssRules]
 
 # Set rules.
 # @TODO: implement parent context, for appending to a given parent.
@@ -334,7 +393,7 @@ Froth.update = (rules, stylesheetId) ->
 # Add imports.
 Froth.addImports = (imports, stylesheetId) ->
   stylesheet = Froth.getStylesheet(stylesheetId)
-  for import_ in imports
+  for import_ in imports ? []
     stylesheet.imports.push(import_)
 
 # Delete rules.
@@ -362,7 +421,6 @@ Froth.inject = (sheetIds) ->
     else
       sheetIds = [sheetIds]
 
-  console.log(sheetIds)
   for sheetId in sheetIds
     sheet = Froth.stylesheets[sheetId]
     cssText = sheet.toCss()
@@ -375,6 +433,34 @@ Froth.inject = (sheetIds) ->
       cssEl.appendChild(document.createTextNode(cssText))
 
     document.getElementsByTagName("head")[0].appendChild(cssEl)
+
+# Include a froth module.
+Froth.includeModule = (frothMod) ->
+  # Merge config.
+  #@TODO
+
+  # Convert sheets to JsonCss.
+  jsonCssSheets = {}
+  for sheetId, sheetData of frothMod.sheets
+    jsonCssSheets[sheetId] = Froth.toJsonCss(sheetData)
+
+  # Rewrite relative urls per module's baseUrl, if given.
+  rewriteRules = []
+  if frothMod.config?.baseUrl?
+    baseUrlRewriteRule = [/^[^(http:\/\/|\/)](.*)/, (match) -> return baseUrl + match[1]]
+    rewriteRules.push[baseUrlRewriteRule]
+  for sheetId, jsonCss of jsonCssSheets
+    JsonCss.rewriteUrls(jsoncss, rewriteRules)
+
+  # Merge module's sheets.
+  for sheetId, jsonCss of jsonCssSheets
+    froth.set(jsonCss.rules, sheetId)
+    froth.addImports(jsonCss.imports, sheetId)
+
+# Extend config.
+Froth.extendConfig = (targetConfig, srcConfigs...) ->
+  #@TODO: implement this.
+  return targetConfig
 
 # Include CSS Parser (from https://github.com/NV/CSSOM)
 Froth.cssom = require('./contrib/cssom.min.js')
