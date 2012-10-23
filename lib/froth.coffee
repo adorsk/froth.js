@@ -348,6 +348,34 @@ Froth.resetStylesheets = ->
 Froth.resetConfig = ->
   Froth.config = Froth.extend({}, Froth.defaultConfig)
 
+# Inject stylesheets into DOM document.
+Froth.inject = (sheetIds) ->
+  if not window? or not document?
+    return
+  if not sheetIds
+    sheetIds = [Froth.defaultStylesheetId]
+  else if not (sheetIds instanceof Array)
+    if sheetIds == 'all'
+      sheetIds = []
+      for sheetId, sheet of Froth.stylesheets
+        sheetIds.push(sheetId)
+    else
+      sheetIds = [sheetIds]
+
+  console.log(sheetIds)
+  for sheetId in sheetIds
+    sheet = Froth.stylesheets[sheetId]
+    cssText = sheet.toCss()
+    cssEl = document.createElement('style')
+    cssEl.id = sheetId + '_css'
+    cssEl.type = 'text/css'
+    if (cssEl.styleSheet)
+      cssEl.styleSheet.cssText = cssText
+    else
+      cssEl.appendChild(document.createTextNode(cssText))
+
+    document.getElementsByTagName("head")[0].appendChild(cssEl)
+
 # Include CSS Parser (from https://github.com/NV/CSSOM)
 Froth.cssom = require('./contrib/cssom.min.js')
 
