@@ -6,19 +6,22 @@ request = require('request')
 $ = require('jquery')
 md5 = require('./md5')
 
-frothc = exports
+Frothc = exports
 
-frothc._fetchedUrls = {}
+Frothc._fetchedUrls = {}
+
+# Set local Froth as the default context.
+Frothc.ctx = Froth
 
 # Helper functions for predictably unique filenames.
-frothc.uniqueFilename = (url) ->
+Frothc.uniqueFilename = (url) ->
   filename = url.replace(/.*\//, '')
   filenameParts = filename.split('.')
   urlHash = md5.hex_md5(url)
   filenameParts.splice(filenameParts.length-1, 0, urlHash)
   return filenameParts.join('.')
 
-frothc.compile = (opts={}) ->
+Frothc.compile = (opts={}) ->
   # Define default options.
   default_opts = {
     'consolidateTo': 'stdout'
@@ -28,21 +31,21 @@ frothc.compile = (opts={}) ->
 
   deferred = $.Deferred()
 
-  # Convert stylesheets to JSONCSS.
+  # Convert sheets to JSONCSS.
   jsonCssObjs = []
-  for id, stylesheet of Froth.stylesheets
-    jsonCssObjs.push(stylesheet.toJsonCss())
+  for id, sheet of Frothc.ctx.sheets
+    jsonCssObjs.push(sheet.toJsonCss())
 
   # If bundling assets, process accordingly.
-  if Froth.config.bundling
-    bundleDeferred = frothc.bundleJsonCssObjs(jsonCssObjs)
+  if Frothc.ctx.config.bundling
+    bundleDeferred = Frothc.bundleJsonCssObjs(jsonCssObjs)
   else
     bundleDeferred = $.Deferred()
     bundleDeferred.resolve(jsonCssObjs)
 
   # After bundling is complete...
   bundleDeferred.done (bundledJsonCssObjs) ->
-    # Compile the css documents for each stylesheet.
+    # Compile the css documents for each sheet.
     cssDocs = {}
     for jsonCss in bundledJsonCssObjs
       cssDocs[jsonCss.id] = Froth.JsonCss.dumpcss(jsonCss)
@@ -70,13 +73,13 @@ frothc.compile = (opts={}) ->
 # Returns a promise that resolves when all assets have been resolved and fetched.
 # Data passed to resolve method will be JsonCss with values modified
 # to reflect bundled assets.
-frothc.bundleJsonCssObjs = (jsonCssObjs, opts={}) ->
+Frothc.bundleJsonCssObjs = (jsonCssObjs, opts={}) ->
   deferred = $.Deferred()
   deferreds = []
 
   # Bundle each jsoncss object.
   for jsonCss in jsonCssObjs
-    jsonCssDeferred = frothc.bundleJsonCss(jsonCss, opts)
+    jsonCssDeferred = Frothc.bundleJsonCss(jsonCss, opts)
     deferreds.push(jsonCssDeferred)
 
   promise = $.when(deferreds...)
@@ -87,7 +90,7 @@ frothc.bundleJsonCssObjs = (jsonCssObjs, opts={}) ->
   return deferred
 
 # Bundle a single JsonCss object.
-frothc.bundleJsonCss = (jsonCss, opts={}) ->
+Frothc.bundleJsonCss = (jsonCss, opts={}) ->
   deferred = $.Deferred()
   deferreds = []
 
@@ -127,7 +130,7 @@ frothc.bundleJsonCss = (jsonCss, opts={}) ->
             # Wrap the url in its original 'url(...)' context.
             return match[1] + processedUrl + match[3]
         )
-    # Save processed rule to bundled stylesheet.
+    # Save processed rule to bundled sheet.
     bundledJsonCss.rules[selector] = style
 
   promise = $.when(deferreds...)
@@ -144,20 +147,20 @@ processUrlForBundling = (url, opts={}) ->
   deferred = $.Deferred()
 
   # Rewrite the url per the rewrite rules.
-  url = Froth.rewriteUrl(url, Froth.config.bundling.rewrites ? [])
+  url = Froth.rewriteUrl(url, Frothc.ctx.config.bundling.rewrites ? [])
 
   # If we should fetch the url (per includes and excludes).
-  if shouldFetchUrl(url, Froth.config.bundling)
+  if shouldFetchUrl(url, Frothc.ctx.config.bundling)
     # If the url has not been fetched, fetch it and write to the
     # the target dir.
-    if not frothc._fetchedUrls[url]
+    if not Frothc._fetchedUrls[url]
       # Get asset filename.
       # We use a hash code on the url to avoid clobbering files with the same name.
-      filename = frothc.uniqueFilename(url)
+      filename = Frothc.uniqueFilename(url)
       
       # Fetch the url.
       srcStream = getStreamForUrl(url)
-      targetPath = Froth.config.bundling.bundleDir + '/' + filename
+      targetPath = Frothc.ctx.config.bundling.bundleDir + '/' + filename
       targetStream = fs.createWriteStream(targetPath)
 
       srcStream.once 'open', (srcFd) ->
@@ -173,11 +176,11 @@ processUrlForBundling = (url, opts={}) ->
       srcStream.once 'error', -> onError('src',url, arguments)
       targetStream.once 'error', -> onError('target', targetPath, arguments)
 
-      assetUrl = Froth.config.bundling.baseUrl + '/' + filename
-      frothc._fetchedUrls[url] = assetUrl
+      assetUrl = Frothc.ctx.config.bundling.baseUrl + '/' + filename
+      Frothc._fetchedUrls[url] = assetUrl
     
     # Replace url with asset url (if exists).
-    url = frothc._fetchedUrls[url] ? url
+    url = Frothc._fetchedUrls[url] ? url
 
   return [url, deferred]
 
