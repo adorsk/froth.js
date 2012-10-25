@@ -14,7 +14,6 @@ Frothc._fetchedUrls = {}
 # Set default options.
 Frothc.defaultOptions= {
   consolidateSheets: true,
-  printTo: 'stdout',
   outputDir: null,
   baseRewriteUrl: '',
   bundle: false,
@@ -39,20 +38,24 @@ Frothc.compile = (ctx, opts={}) ->
 
   # If using output dir...
   if opts.outputDir
+    # Set printTo false if not set.
+    opts.printTo ?= false
     # Create output dir if it does not exist.
     if not fs.existsSync(opts.outputDir)
       wrench.mkdirSyncRecursive(opts.outputDir)
-
     # If bundling...
     if opts.bundle
       # If bundle dir is relative...
       if opts.bundleDir?.match(Froth.relativeUrlRe)
         # If bundleBaseUrl is not set...
         if not opts.bundleBaseUrl?
-          # Make bundleBaseUrl match outputDir name + bundleDir
-          opts.bundleBaseUrl = path.join(path.basename(opts.outputDir), opts.bundleDir)
+          # Make bundleBaseUrl match bundleDir
+          opts.bundleBaseUrl = opts.bundleDir
         # Make bundleDir be relative to output dir.
         opts.bundleDir = path.join(opts.outputDir, opts.bundleDir)
+  # Otherwise, set printTo to stdout if not set.
+  else
+    opts.printTo ?= 'stdout'
 
   deferred = $.Deferred()
 
