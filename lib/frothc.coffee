@@ -19,7 +19,7 @@ Frothc.defaultOptions= {
   baseRewriteUrl: '',
   bundle: false,
   bundleDir: 'bundled_assets',
-  bundleBaseUrl: 'bundled_assets'
+  bundleBaseUrl: null
 }
 
 # Helper functions for predictably unique filenames.
@@ -39,10 +39,20 @@ Frothc.compile = (ctx, opts={}) ->
 
   # If using output dir...
   if opts.outputDir
-    # If bundling and bundleDir is relative...
-    if opts.bundle and not opts.bundleDir.match(/^[\/\\]/)
-      # Make bundleDir be relative to output dir.
-      opts.bundleDir = path.join(opts.outputDir, opts.bundleDir)
+    # Create output dir if it does not exist.
+    if not fs.existsSync(opts.outputDir)
+      wrench.mkdirSyncRecursive(opts.outputDir)
+
+    # If bundling...
+    if opts.bundle
+      # If bundle dir is relative...
+      if opts.bundleDir?.match(Froth.relativeUrlRe)
+        # If bundleBaseUrl is not set...
+        if not opts.bundleBaseUrl?
+          # Make bundleBaseUrl match outputDir name + bundleDir
+          opts.bundleBaseUrl = path.join(path.basename(opts.outputDir), opts.bundleDir)
+        # Make bundleDir be relative to output dir.
+        opts.bundleDir = path.join(opts.outputDir, opts.bundleDir)
 
   deferred = $.Deferred()
 
@@ -54,7 +64,7 @@ Frothc.compile = (ctx, opts={}) ->
   # If bundling assets, process accordingly.
   if opts.bundle
     # Make the bundle dir.
-    wrench.mkdirSyncRecursive(opts.bundle.dir)
+    wrench.mkdirSyncRecursive(opts.bundleDir)
     bundleDeferred = Frothc.bundleJsonCssObjs(jsonCssObjs, opts)
   else
     bundleDeferred = $.Deferred()
@@ -68,21 +78,38 @@ Frothc.compile = (ctx, opts={}) ->
       cssDocs[jsonCss.id] = Froth.JsonCss.dumpcss(jsonCss)
 
     # Initialize outputs.
-    outputs = []
-
-    # Consolidate into one file if specified.
+    outputs = {}
+    # If consolidating, consolidate into one output.
     if opts.consolidateSheets
-      consolidatedDoc = (cssDoc for id, cssDoc of cssDocs).join("\n")
-      outputs.push(consolidatedDoc)
-
-    # Otherwise write individual sheets.
+      consolidatedCssTexts = []
+      for id, cssText of cssDocs
+        consolidatedCssTexts.push(cssText)
+      consolidatedCssText = consolidatedCssTexts.join("\n")
+      outputs = {'__consolidated__' : consolidatedCssText}
+    # Use separate outputs.
     else
-      #@TODO
+      outputs[id] = cssDocs
+
+    # If using output dir...
+    if opts.outputDir
+      # Save each output to the output dir.
+      for id, cssText of outputs
+        # Set filename as outputDir + id.
+        filename = path.join(opts.outputDir, id + '.css')
+        # Special consolidated file.
+        if id == '__consolidated__'
+          filename = path.join(opts.outputDir, 'consolidated.css')
+        # Write css text to file.
+        fs.writeFile(filename, cssText, (err) ->
+          if err
+            console.error("Error writing file: '%s', error was: %o", filename, err)
+            deferred.reject(err)
+        )
 
     # If printing...
     if opts.printTo
       # Conslidate to one document.
-      consolidatedOutputs = outputs.join("\n")
+      consolidatedOutputs = (cssText for id, cssText of outputs).join("\n")
       if opts.printTo == 'stdout'
         process.stdout.write(consolidatedOutputs)
       # Write to file for given filename.

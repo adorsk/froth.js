@@ -435,6 +435,8 @@ Froth.inject = (sheetIds) ->
 
     document.getElementsByTagName("head")[0].appendChild(cssEl)
 
+Froth.relativeUrlRe = /^[^(http:\/\/|\/)](.*)/
+
 # Include a froth module.
 Froth.addModule = (frothMod) ->
   # Merge config.
@@ -449,7 +451,7 @@ Froth.addModule = (frothMod) ->
   rewriteRules = []
   if frothMod.config?.baseUrl?
     baseUrlRewriteRule = [
-      /^[^(http:\/\/|\/)](.*)/,
+      Froth.relativeUrlRe,
       (match) ->
         rewrittenUrl = frothMod.config.baseUrl + match
         return rewrittenUrl
