@@ -12,11 +12,10 @@ Frothc._fetchedUrls = {}
 
 # Set default config.
 Frothc.defaultConfig = {
-  bundling: {
-    baseRewriteUrl: '',
-    bundleDir: 'bundled_assets',
-    baseUrl: 'bundled_assets'
-  }
+  baseRewriteUrl: '',
+  bundle: false,
+  bundleDir: 'bundled_assets',
+  bundleBaseUrl: 'bundled_assets'
 }
 Frothc.resetConfig = () ->
   Frothc.config = Froth.extend({}, Frothc.defaultConfig)
@@ -54,10 +53,10 @@ Frothc.compile = (ctx, opts={}) ->
     jsonCssObjs.push(sheet.toJsonCss())
 
   # If bundling assets, process accordingly.
-  if Frothc.config.bundling
+  if opts.bundle
     # Make the bundle dir.
-    wrench.mkdirSyncRecursive(Frothc.config.bundling.bundleDir)
-    bundleDeferred = Frothc.bundleJsonCssObjs(jsonCssObjs)
+    wrench.mkdirSyncRecursive(opts.bundle.dir)
+    bundleDeferred = Frothc.bundleJsonCssObjs(jsonCssObjs, opts)
   else
     bundleDeferred = $.Deferred()
     bundleDeferred.resolve(jsonCssObjs)
@@ -169,10 +168,13 @@ processUrlForBundling = (url, opts={}) ->
   deferred = $.Deferred()
 
   # Rewrite the url per the rewrite rules.
-  url = Froth.rewriteUrl(url, Frothc.config.bundling.rewrites ? [])
+  url = Froth.rewriteUrl(url, opts.bundleRewrites ? [])
 
   # If we should fetch the url (per includes and excludes).
-  if shouldFetchUrl(url, Frothc.config.bundling)
+  if shouldFetchUrl(
+    url,
+    {includes: opts.bundleIncludes, excludes: opts.bundleExcludes}
+  )
     # If the url has not been fetched, fetch it and write to the
     # the target dir.
     if not Frothc._fetchedUrls[url]
@@ -182,12 +184,12 @@ processUrlForBundling = (url, opts={}) ->
       
       # Fetch the url.
       srcStream = getStreamForUrl(url)
-      targetPath = Frothc.config.bundling.bundleDir + '/' + filename
+      targetPath = opts.bundleDir + '/' + filename
       targetStream = fs.createWriteStream(targetPath)
 
       onError = ->
         console.error("Unable to bundle asset '%s', error: '%j'", url, arguments)
-        if Frothc.config.bundling.failOnError?
+        if opts.bundleFailOnError?
           deferred.reject(arguments)
         else
           deferred.resolve()
@@ -203,7 +205,7 @@ processUrlForBundling = (url, opts={}) ->
       srcStream.once 'error', -> onError('src',url, arguments)
       targetStream.once 'error', -> onError('target', targetPath, arguments)
 
-      assetUrl = Frothc.config.bundling.baseUrl + '/' + filename
+      assetUrl = opts.bundleBaseUrl + '/' + filename
       Frothc._fetchedUrls[url] = assetUrl
     
     # Replace url with asset url (if exists).

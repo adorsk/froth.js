@@ -55,16 +55,13 @@ describe 'Frothc', ->
           wrench.mkdirSyncRecursive(this.tmpDirs.assets + '/' + assetRelDir)
           fs.writeFile(this.tmpDirs.assets + '/' + mockAssetPath, mockAsset + ' content')
 
-      this.defaultBundlingConfig = {
+      this.bundlingConfig = {
         bundleBaseUrl: '/new/base',
         bundleDir: this.tmpDirs.bundle,
-        rewrites: this.rewrites
+        bundleRewrites: this.rewrites
       }
 
-      Frothc.config.bundling = Froth.extend({}, this.defaultBundlingConfig, {
-        baseUrl: '/new/base',
-        bundleDir: this.tmpDirs.bundle,
-      })
+      this.compileConfig = Froth.extend({}, this.bundlingConfig)
 
       done()
     
@@ -84,12 +81,12 @@ describe 'Frothc', ->
           mockAssetPath = path + '/' + mockAsset
           rewrittenPath = Froth.rewriteUrl(mockAssetPath, this.rewrites)
           uniqueFilename = Frothc.uniqueFilename(rewrittenPath)
-          filePath = Frothc.config.bundling.bundleDir + '/' + uniqueFilename
+          filePath = this.bundlingConfig.bundleDir + '/' + uniqueFilename
 
           selector = 's_' + i
           test_urls[selector] = {
             original: mockAssetPath,
-            expected: Frothc.config.bundling.baseUrl + '/' + uniqueFilename
+            expected: this.bundlingConfig.bundleBaseUrl + '/' + uniqueFilename
           }
           expected_files.push(filePath)
           i += 1
@@ -108,7 +105,7 @@ describe 'Frothc', ->
 
       sheet = Froth.sheets[Froth.defaultSheetId]
       jsoncss = sheet.toJsonCss()
-      bundleDeferred = Frothc.bundleJsonCss(jsoncss, this.defaultBundlingOpts)
+      bundleDeferred = Frothc.bundleJsonCss(jsoncss, this.compileConfig)
       bundleDeferred.done (bundledJsonCss) =>
         # Check that rewritten urls are as expected.
         bundledJsonCss.rules.should.eql(expected_rules)
@@ -150,11 +147,11 @@ describe 'Frothc', ->
           mockAssetPath = path + '/' + mockAsset
           rewrittenPath = Froth.rewriteUrl(mockAssetPath, this.rewrites)
           uniqueFilename = Frothc.uniqueFilename(rewrittenPath)
-          filePath = Frothc.config.bundling.bundleDir + '/' + uniqueFilename
+          filePath = this.bundlingConfig.bundleDir + '/' + uniqueFilename
 
           test_urls[mockAssetPath] = {
             original: mockAssetPath,
-            expected: Frothc.config.bundling.baseUrl + '/' + uniqueFilename
+            expected: this.bundlingConfig.bundleBaseUrl + '/' + uniqueFilename
           }
           expected_files.push(filePath)
           i += 1
@@ -173,7 +170,7 @@ describe 'Frothc', ->
 
       sheet = Froth.sheets[Froth.defaultSheetId]
       jsoncss = sheet.toJsonCss()
-      bundleDeferred = Frothc.bundleJsonCss(jsoncss, this.defaultBundlingOpts)
+      bundleDeferred = Frothc.bundleJsonCss(jsoncss, this.compileConfig)
       bundleDeferred.done (bundledJsonCss) =>
         # Check that rewritten imports are as expected.
         bundledJsonCss.imports.should.eql(expected_imports)
@@ -197,9 +194,13 @@ describe 'Frothc', ->
   ###
   describe '#Frothc.compile', ->
 
+    beforeEach (done) ->
+      this.opts = {
+        bundle: false
+      }
+      done()
 
     it 'should generate a CSS document', (done) ->
-      Frothc.config.bundling = false
       rules = {
         '.a' : {
           'color': 'blue'
@@ -208,9 +209,9 @@ describe 'Frothc', ->
       Froth.set(rules)
       sheet = Froth.getSheet()
       strFile = new StringFile()
-      Frothc.compile(Froth, {
+      Frothc.compile(Froth, Froth.extend({}, this.opts, {
         consolidateTo: strFile
-      })
+      }))
       strFile.value.should.eql("""
 .a {
   color: blue;
@@ -234,9 +235,9 @@ describe 'Frothc', ->
       }, 'sheet2')
 
       strFile = new StringFile()
-      Frothc.compile(Froth, {
+      Frothc.compile(Froth, Froth.extend({}, this.opts, {
         consolidateTo: strFile
-      })
+      }))
       strFile.value.should.eql("""
 .a {
   color: blue;
