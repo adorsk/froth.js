@@ -35,7 +35,10 @@ Frothc.uniqueFilename = (url) ->
   filenameParts.splice(filenameParts.length-1, 0, urlHash)
   return filenameParts.join('.')
 
-Frothc.compile = (opts={}) ->
+Frothc.compile = (ctx, opts={}) ->
+  # Use default context if none given.
+  ctx ?= Frothc.ctx
+  
   # Define default options.
   default_opts = {
     'consolidateTo': 'stdout'
@@ -47,7 +50,7 @@ Frothc.compile = (opts={}) ->
 
   # Convert sheets to JSONCSS.
   jsonCssObjs = []
-  for id, sheet of Frothc.ctx.sheets
+  for id, sheet of ctx.sheets
     jsonCssObjs.push(sheet.toJsonCss())
 
   # If bundling assets, process accordingly.

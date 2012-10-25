@@ -208,7 +208,7 @@ describe 'Frothc', ->
       Froth.set(rules)
       sheet = Froth.getSheet()
       strFile = new StringFile()
-      Frothc.compile({
+      Frothc.compile(Froth, {
         consolidateTo: strFile
       })
       strFile.value.should.eql("""
@@ -234,7 +234,7 @@ describe 'Frothc', ->
       }, 'sheet2')
 
       strFile = new StringFile()
-      Frothc.compile({
+      Frothc.compile(Froth, {
         consolidateTo: strFile
       })
       strFile.value.should.eql("""
