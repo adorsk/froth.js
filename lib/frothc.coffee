@@ -1,5 +1,6 @@
 Froth = require('./froth.coffee')
 fs = require('fs')
+path = require('path')
 wrench = require('wrench')
 util = require('util')
 request = require('request')
@@ -35,6 +36,13 @@ Frothc.compile = (ctx, opts={}) ->
   
   # Merge defaults with provided options.
   opts = Froth.extend(Frothc.defaultOptions, opts)
+
+  # If using output dir...
+  if opts.outputDir
+    # If bundling and bundleDir is relative...
+    if opts.bundle and not opts.bundleDir.match(/^[\/\\]/)
+      # Make bundleDir be relative to output dir.
+      opts.bundleDir = path.join(opts.outputDir, opts.bundleDir)
 
   deferred = $.Deferred()
 
