@@ -77,7 +77,8 @@ Frothc.compile = (ctx, opts={}) ->
         process.stdout.write(consolidatedDoc)
       # Write to file for given filename.
       else if typeof opts.consolidateTo == 'string'
-        # @TODO: open file here.
+        fs.writeFileSync(opts.consolidateTo, consolidatedDoc)
+
       # Write to stream.
       else if opts.consolidateTo.write
         opts.consolidateTo.write(consolidatedDoc)
