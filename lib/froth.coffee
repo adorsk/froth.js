@@ -2,13 +2,19 @@
 root = this
 oldFroth = root.Froth
 Froth = {}
+# CommonJS.
 if typeof exports != 'undefined'
   Froth = exports
+# AMD
+else if typeof define == 'function' and define.amd?
+  define('froth', [], -> return Froth)
+# Plain global variable.
 else
   Froth = root.Froth = {}
 Froth.noConflict = ->
   root.Froth = oldFroth
   return this
+
 
 # <grumble>. I wish this was in coffeescript core...
 Froth.extend = (dest, objs...) ->
@@ -464,4 +470,6 @@ Froth.extendConfig = (targetConfig, srcConfigs...) ->
 
 # Include CSS Parser (from https://github.com/NV/CSSOM)
 Froth.cssom = require('./contrib/cssom.min.js')
+
+# Define Froth for AMD.
 
