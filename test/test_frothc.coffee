@@ -195,7 +195,7 @@ describe 'Frothc', ->
   describe '#Frothc.compile', ->
 
     beforeEach (done) ->
-      this.opts = {
+      this.compileOpts = {
         bundle: false
       }
       done()
@@ -209,8 +209,8 @@ describe 'Frothc', ->
       Froth.set(rules)
       sheet = Froth.getSheet()
       strFile = new StringFile()
-      Frothc.compile(Froth, Froth.extend({}, this.opts, {
-        consolidateTo: strFile
+      Frothc.compile(Froth, Froth.extend({}, this.compileOpts, {
+        printTo: strFile
       }))
       strFile.value.should.eql("""
 .a {
@@ -221,7 +221,6 @@ describe 'Frothc', ->
       done()
 
     it 'should consolidate sheets', (done) ->
-      Frothc.config.bundling = false
       Froth.set({
         '.a': {
           'color': 'blue'
@@ -235,8 +234,8 @@ describe 'Frothc', ->
       }, 'sheet2')
 
       strFile = new StringFile()
-      Frothc.compile(Froth, Froth.extend({}, this.opts, {
-        consolidateTo: strFile
+      Frothc.compile(Froth, Froth.extend({}, this.compileOpts, {
+        printTo: strFile
       }))
       strFile.value.should.eql("""
 .a {

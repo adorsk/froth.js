@@ -10,21 +10,16 @@ Frothc = exports
 
 Frothc._fetchedUrls = {}
 
-# Set default config.
-Frothc.defaultConfig = {
+# Set default options.
+Frothc.defaultOptions= {
+  consolidateSheets: true,
+  printTo: 'stdout',
+  outputDir: null,
   baseRewriteUrl: '',
   bundle: false,
   bundleDir: 'bundled_assets',
   bundleBaseUrl: 'bundled_assets'
 }
-Frothc.resetConfig = () ->
-  Frothc.config = Froth.extend({}, Frothc.defaultConfig)
-
-Frothc.resetConfig()
-
-
-# Set local Froth as the default context.
-Frothc.ctx = Froth
 
 # Helper functions for predictably unique filenames.
 Frothc.uniqueFilename = (url) ->
@@ -35,15 +30,11 @@ Frothc.uniqueFilename = (url) ->
   return filenameParts.join('.')
 
 Frothc.compile = (ctx, opts={}) ->
-  # Use default context if none given.
+  # Use Froth global as default context if none given.
   ctx ?= Frothc.ctx
   
-  # Define default options.
-  default_opts = {
-    'consolidateTo': 'stdout'
-  }
   # Merge defaults with provided options.
-  opts = Froth.extend(default_opts, opts)
+  opts = Froth.extend(Frothc.defaultOptions, opts)
 
   deferred = $.Deferred()
 
@@ -68,19 +59,30 @@ Frothc.compile = (ctx, opts={}) ->
     for jsonCss in bundledJsonCssObjs
       cssDocs[jsonCss.id] = Froth.JsonCss.dumpcss(jsonCss)
 
-    # Consolidate into one file if specified.
-    if opts.consolidateTo
-      consolidatedDoc = (cssDoc for id, cssDoc of cssDocs).join("\n")
-      # Write to stdout.
-      if opts.consolidateTo == 'stdout'
-        process.stdout.write(consolidatedDoc)
-      # Write to file for given filename.
-      else if typeof opts.consolidateTo == 'string'
-        fs.writeFileSync(opts.consolidateTo, consolidatedDoc)
+    # Initialize outputs.
+    outputs = []
 
+    # Consolidate into one file if specified.
+    if opts.consolidateSheets
+      consolidatedDoc = (cssDoc for id, cssDoc of cssDocs).join("\n")
+      outputs.push(consolidatedDoc)
+
+    # Otherwise write individual sheets.
+    else
+      #@TODO
+
+    # If printing...
+    if opts.printTo
+      # Conslidate to one document.
+      consolidatedOutputs = outputs.join("\n")
+      if opts.printTo == 'stdout'
+        process.stdout.write(consolidatedOutputs)
+      # Write to file for given filename.
+      else if typeof opts.printTo == 'string'
+        fs.writeFileSync(opts.consolidateTo, consolidatedOutputs)
       # Write to stream.
-      else if opts.consolidateTo.write
-        opts.consolidateTo.write(consolidatedDoc)
+      else if opts.printTo.write?
+        opts.printTo.write(consolidatedOutputs)
 
     # Resolve deferred.
     deferred.resolve()
