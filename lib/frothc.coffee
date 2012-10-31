@@ -64,12 +64,14 @@ Frothc.compile = (ctx, opts={}) ->
   for id, sheet of ctx.sheets
     jsonCssObjs.push(sheet.toJsonCss())
 
-  # If bundling assets, process accordingly.
+  # If bundling assets...
   if opts.bundle
     # Make the bundle dir.
     wrench.mkdirSyncRecursive(opts.bundleDir)
+    # create deferred object representing bundling state.
     bundleDeferred = Frothc.bundleJsonCssObjs(jsonCssObjs, opts)
   else
+    # Create dummy deferred object and resolve immediately w/ unbundled JsonCss.
     bundleDeferred = $.Deferred()
     bundleDeferred.resolve(jsonCssObjs)
 
@@ -126,7 +128,7 @@ Frothc.compile = (ctx, opts={}) ->
     deferred.resolve()
  
   bundleDeferred.fail () ->
-    console.log('failed', arguments)
+    console.error('failed', arguments)
 
   return deferred
 
@@ -204,7 +206,6 @@ Frothc.bundleJsonCss = (jsonCss, opts={}) ->
 
 # Process a url for bundling.
 processUrlForBundling = (url, opts={}) ->
-
   deferred = $.Deferred()
 
   # Rewrite the url per the rewrite rules.
@@ -247,9 +248,16 @@ processUrlForBundling = (url, opts={}) ->
 
       assetUrl = opts.bundleBaseUrl + '/' + filename
       Frothc._fetchedUrls[url] = assetUrl
-    
-    # Replace url with asset url (if exists).
-    url = Frothc._fetchedUrls[url] ? url
+      url = assetUrl
+
+    # Otherwise if url was fetched, use it and resolve deferred.
+    else
+      url = Frothc._fetchedUrls[url]
+      deferred.resolve()
+
+  # Otherwise if url should not be fetched, resolve deferred.
+  else
+    deferred.resolve()
 
   return [url, deferred]
 
